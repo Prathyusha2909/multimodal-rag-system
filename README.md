@@ -6,7 +6,7 @@
 [![React](https://img.shields.io/badge/React-UI-61DAFB)](https://react.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-b8ee45.svg)](LICENSE)
 
-A portfolio-scale retrieval-augmented generation prototype for PDFs, images, and text files. It extracts available text, combines local semantic and BM25 retrieval, reranks evidence, and returns answers with document and page citations.
+A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tables, and text files. It uses BGE embeddings with a persistent FAISS index, BM25 hybrid retrieval, cross-encoder reranking, and document/page citations.
 
 ![Multimodal RAG dashboard](screenshots/home-page.png)
 
@@ -14,38 +14,42 @@ A portfolio-scale retrieval-augmented generation prototype for PDFs, images, and
 
 This repository demonstrates a local prototype, not a production deployment.
 
-- Text PDFs are parsed page by page with `pypdf`.
-- Image uploads use Tesseract OCR when the Tesseract binary is installed.
-- The included synthetic reports have curated chart, table, image, and scan descriptions so multimodal retrieval can be tested deterministically.
-- Uploaded charts are not automatically interpreted beyond extractable text or OCR.
-- Gemini can be enabled for answer synthesis; the default demo uses a deterministic local synthesizer and requires no API key.
+- Text PDFs are parsed page by page with `pypdf`; detected tables are extracted separately with `pdfplumber`.
+- Image uploads use Tesseract OCR when its binary is installed and optional Gemini Vision captioning when an API key is configured.
+- The included synthetic reports have curated chart, table, image, and scan descriptions so retrieval can also be tested without external APIs.
+- Gemini Vision is applied to uploaded image files. This version does not render every PDF page or embedded PDF figure through a vision model.
+- Gemini can be enabled for answer synthesis; the default generator is deterministic and local.
+- BGE and MiniLM are local ONNX models downloaded by FastEmbed on first use.
 - No private documents, internal servers, real hardware, or company data are used.
 
 ## Problem Statement
 
-Text-only RAG loses useful context when evidence is presented as a table, chart, scanned note, or image. This prototype stores a modality label and source metadata with every chunk, then uses query intent to rank chart and table evidence alongside ordinary text.
+Text-only RAG loses useful context when evidence is presented as a table, chart, scanned note, or image. This prototype keeps text, table, and visual descriptions as modality-aware chunks with source metadata, then retrieves and reranks them together.
 
 ## Implemented Architecture
 
 ![Architecture](docs/architecture.png)
 
 ```text
-PDF / image / text upload
+PDF / image / text / CSV upload
           |
           v
-pypdf text extraction or optional Tesseract OCR
+pypdf text + pdfplumber tables + Tesseract/Gemini Vision
           |
           v
-typed chunks + document/page metadata
+500-token chunks + 100-token overlap + source metadata
           |
-          +---- local hash-vector search
+          +---- BGE-small embeddings -> persistent FAISS
           +---- BM25 lexical search
                          |
                          v
-                 score fusion + reranking
+                 top 10 hybrid candidates
                          |
                          v
-              local or optional Gemini answer
+                 MiniLM cross-encoder
+                         |
+                         v
+          top 3-5 -> local or Gemini answer
                          |
                          v
                 inspectable page citations
@@ -56,13 +60,15 @@ Read the [architecture notes](docs/ARCHITECTURE.md) and [API reference](docs/API
 ## Features
 
 - PDF, PNG, JPG, WEBP, TIFF, TXT, Markdown, and CSV ingestion
-- Page-level PDF text extraction
-- Optional Tesseract OCR for image uploads
-- Typed evidence for text, table, chart, image, and scan samples
-- Local hash-vector and BM25 retrieval
-- Query-aware modality reranking
+- Page-level PDF text extraction and separate `pdfplumber` table chunks
+- Optional Tesseract OCR and Gemini Vision analysis for image uploads
+- 500-token chunks with 100-token overlap and filename, page, chunk, and token metadata
+- `BAAI/bge-small-en-v1.5` embeddings through FastEmbed
+- Persistent cosine-similarity FAISS index plus BM25 lexical retrieval
+- Top-10 candidate retrieval and `ms-marco-MiniLM-L-6-v2` cross-encoder reranking
+- On-disk caches for extraction, embeddings, reranker scores, model files, and the vector index
 - Deterministic local answer generation
-- Optional Gemini answer generation
+- Optional Gemini 2.5 Flash answer generation and image analysis
 - Document, page, modality, excerpt, and reranking score in every citation
 - Responsive React interface
 - Docker Compose for running the API and UI locally
@@ -73,9 +79,10 @@ Read the [architecture notes](docs/ARCHITECTURE.md) and [API reference](docs/API
 | --- | --- |
 | Backend | Python, FastAPI, Pydantic |
 | Frontend | React, Vite |
-| Retrieval | Local hash vectors, BM25, deterministic reranker |
-| Parsing | pypdf, optional Tesseract OCR |
-| Generation | Local extractive synthesizer, optional Gemini |
+| Retrieval | BGE-small, FAISS, BM25, MiniLM cross-encoder |
+| Parsing | pypdf, pdfplumber, optional Tesseract OCR |
+| Vision | Optional Gemini 2.5 Flash for uploaded images/charts |
+| Generation | Local extractive synthesizer, optional Gemini 2.5 Flash |
 | Evaluation | DeepEval custom deterministic metrics |
 | Packaging | Docker Compose, GitHub Actions |
 
@@ -93,7 +100,7 @@ The PCIe log and issue simulate validation workflows. They are explicitly marked
 
 ## Evaluation
 
-Responses were evaluated using **DeepEval 3.9.9 on a custom eight-question test set**. The evaluation uses deterministic custom metrics and does not call an external judge model.
+Responses were evaluated using **DeepEval 3.9.9 on a custom eight-question test set**. The runner executes the real BGE-small, FAISS, BM25, and MiniLM reranking path, then applies deterministic custom metrics without an external judge model.
 
 | Metric | Result on published sample set |
 | --- | ---: |
@@ -141,6 +148,8 @@ npm run dev
 
 Set `GEMINI_API_KEY` in `.env` to use Gemini instead of the local synthesizer.
 
+The first API initialization downloads the BGE embedding and MiniLM reranker ONNX files. Later runs reuse `backend/data/cache/` and the persistent index in `backend/data/index/`.
+
 ## Usage
 
 1. Upload one of the files from `samples/documents/` or another supported file.
@@ -172,7 +181,7 @@ curl -X POST http://localhost:8000/api/v1/query \
 
 ```text
 multimodal-rag-system/
-|-- backend/              # FastAPI application and tests
+|-- backend/              # FastAPI app, tests, caches, and persistent FAISS data
 |-- frontend/             # React interface
 |-- evaluation/           # DeepEval test set and runner
 |-- samples/              # PDFs, logs, issues, and outputs
@@ -195,9 +204,8 @@ npm run build
 
 ## Resume Wording
 
-> Built a multimodal RAG prototype that ingests PDFs, images, and text files, combines semantic and BM25 retrieval, and returns evidence-backed answers with page-level citations. Evaluated responses using DeepEval on a custom eight-question test set.
+> Built a multimodal document RAG system that extracts PDF text and tables, analyzes uploaded images with OCR and optional Gemini Vision, indexes 500-token chunks using BGE-small and FAISS, and reranks hybrid retrieval results with a MiniLM cross-encoder. Evaluated responses using DeepEval on a custom eight-question test set.
 
 ## License
 
 MIT
-

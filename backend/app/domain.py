@@ -15,7 +15,7 @@ class DocumentChunk:
     modality: Modality
     content: str
     title: str = ""
-    metadata: dict[str, str | int | float] = field(default_factory=dict)
+    metadata: dict[str, str | int | float | bool] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -26,9 +26,9 @@ class SearchHit:
     chunk: DocumentChunk
     semantic_score: float
     lexical_score: float
+    cross_encoder_score: float = 0.0
     rerank_score: float = 0.0
 
     @property
     def score(self) -> float:
         return self.rerank_score or (0.65 * self.semantic_score + 0.35 * self.lexical_score)
-

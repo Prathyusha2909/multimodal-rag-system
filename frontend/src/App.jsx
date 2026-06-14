@@ -115,7 +115,7 @@ function App() {
           <div className="pipeline-label"><Icon name="database" /><span>Retrieval pipeline</span></div>
           <strong>Hybrid + reranking</strong>
           <small>Semantic and lexical evidence fused before generation.</small>
-          <div className="pipeline-tags"><span>Local vectors</span><span>BM25</span><span>Reranker</span></div>
+          <div className="pipeline-tags"><span>BGE-small</span><span>FAISS</span><span>BM25</span><span>MiniLM</span></div>
         </div>
 
         <div className="profile">

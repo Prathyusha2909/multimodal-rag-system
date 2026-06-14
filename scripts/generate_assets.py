@@ -49,9 +49,9 @@ def save_architecture():
     text(draw, (90, 105), "From unstructured documents to cited answers", 42, TEXT, True)
     stages = [
         ("01", "Sources", "PDFs, scans, images, tables, charts"),
-        ("02", "Extraction", "PDF text parsing and optional Tesseract OCR"),
-        ("03", "Indexing", "Typed chunks, local vectors, source metadata"),
-        ("04", "Retrieval", "Semantic + BM25 fusion, modality reranking"),
+        ("02", "Extraction", "pypdf text, pdfplumber tables, OCR and vision"),
+        ("03", "Indexing", "500-token chunks, BGE embeddings, persistent FAISS"),
+        ("04", "Retrieval", "Top-10 BGE + BM25, MiniLM reranking"),
         ("05", "Response", "Local synthesis or optional Gemini, with citations"),
     ]
     x_positions = [75, 420, 765, 1110, 1455]
@@ -65,7 +65,7 @@ def save_architecture():
             arrow(draw, (x + 281, 480), (x + 327, 480), "#55667a", 3)
     rounded(draw, (270, 755, 1530, 875), 18, "#0d1723")
     text(draw, (315, 785), "TRACEABILITY LAYER", 14, AQUA, True)
-    text(draw, (315, 820), "Every chunk preserves document, page, modality, figure/table ID, and retrieval score.", 22, TEXT)
+    text(draw, (315, 820), "Every chunk preserves document, page, chunk ID, modality, token range, and retrieval score.", 22, TEXT)
     DOCS.mkdir(exist_ok=True)
     image.save(DOCS / "architecture.png", quality=95)
 
@@ -77,9 +77,9 @@ def save_workflow():
     text(draw, (90, 105), "Hybrid retrieval keeps exact values and semantic context", 40, TEXT, True)
     nodes = [
         (150, 270, "User question", "Compare Figure 3 and Table 2"),
-        (590, 210, "Semantic path", "Local hash vectors capture token similarity"),
+        (590, 210, "Semantic path", "BGE-small embeddings search the FAISS index"),
         (590, 530, "Lexical path", "BM25 preserves exact labels"),
-        (1030, 370, "Fusion + reranking", "Score normalization and modality intent"),
+        (1030, 370, "Fusion + reranking", "Top 10 candidates scored by MiniLM"),
         (1450, 370, "Grounded answer", "Citations link back to page evidence"),
     ]
     for x, y, title, body in nodes:
@@ -92,7 +92,7 @@ def save_workflow():
     arrow(draw, (870, 610), (1015, 480), AQUA, 4)
     arrow(draw, (1310, 460), (1435, 460), LIME, 4)
     rounded(draw, (590, 785, 1310, 875), 16, "#111c2a")
-    text(draw, (950, 815), "Reranker boosts chart/table evidence when the query signals visual intent", 19, LIME, False, "ma")
+    text(draw, (950, 815), "Cross-encoder reranking reduces ten hybrid candidates to the strongest cited evidence", 19, LIME, False, "ma")
     image.save(DOCS / "workflow.png", quality=95)
 
 
@@ -104,12 +104,12 @@ def save_system_design():
     boxes = [
         (90, 260, 330, 390, "React dashboard", "Upload and query UI"),
         (450, 260, 690, 390, "FastAPI", "Document and query endpoints"),
-        (830, 190, 1090, 320, "PDF parser", "Extract page text with pypdf"),
-        (830, 390, 1090, 520, "Image OCR", "Optional local Tesseract"),
-        (1210, 290, 1480, 420, "Typed chunks", "Document, page, modality, text"),
+        (830, 190, 1090, 320, "PDF extraction", "pypdf text + pdfplumber tables"),
+        (830, 390, 1090, 520, "Image analysis", "Tesseract + optional Gemini Vision"),
+        (1210, 290, 1480, 420, "Persistent index", "BGE vectors + FAISS + metadata"),
         (90, 700, 350, 830, "User question", "Natural-language query"),
-        (470, 700, 730, 830, "Hybrid retrieval", "Hash vectors + BM25"),
-        (850, 700, 1110, 830, "Reranker", "Overlap and modality intent"),
+        (470, 700, 730, 830, "Hybrid retrieval", "BGE semantic search + BM25"),
+        (850, 700, 1110, 830, "Reranker", "MiniLM cross-encoder"),
         (1230, 700, 1530, 830, "Cited response", "Local synthesis or optional Gemini"),
     ]
     for x1, y1, x2, y2, title, body in boxes:
@@ -129,7 +129,7 @@ def save_system_design():
     arrow(draw, (730, 765), (835, 765), LIME, 4)
     arrow(draw, (1110, 765), (1215, 765), LIME, 4)
     rounded(draw, (320, 930, 1480, 1010), 14, "#0d1723")
-    text(draw, (900, 970), "The in-memory index resets when the API restarts; uploaded files remain in the local upload folder.", 17, AQUA, False, "mm")
+    text(draw, (900, 970), "Extracted chunks, embeddings, reranker scores, and the FAISS index are cached on disk.", 17, AQUA, False, "mm")
     image.save(DOCS / "system-design.png", quality=95)
 
 
@@ -211,7 +211,7 @@ def save_query():
     draw = ImageDraw.Draw(image)
     draw.rounded_rectangle((334, 288, 1036, 439), radius=11, outline=LIME, width=3)
     rounded(draw, (540, 455, 845, 489), 8, "#1b2635", "#48586d")
-    text(draw, (692, 472), "Hybrid search running: semantic + BM25", 11, TEXT, False, "mm")
+    text(draw, (692, 472), "Hybrid search running: BGE + FAISS + BM25", 11, TEXT, False, "mm")
     image.save(SHOTS / "query-example.png", quality=95)
 
 

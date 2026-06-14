@@ -11,8 +11,16 @@ class Settings(BaseSettings):
     api_port: int = 8000
     frontend_origin: str = "http://localhost:5173"
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-2.5-flash"
+    vision_model: str = "gemini-2.5-flash"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    reranker_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
+    chunk_size_tokens: int = 500
+    chunk_overlap_tokens: int = 100
+    retrieval_candidates: int = 10
     upload_dir: Path = Path(__file__).resolve().parents[1] / "data" / "uploads"
+    cache_dir: Path = Path(__file__).resolve().parents[1] / "data" / "cache"
+    index_dir: Path = Path(__file__).resolve().parents[1] / "data" / "index"
 
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),
@@ -25,4 +33,6 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     settings = Settings()
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
+    settings.cache_dir.mkdir(parents=True, exist_ok=True)
+    settings.index_dir.mkdir(parents=True, exist_ok=True)
     return settings

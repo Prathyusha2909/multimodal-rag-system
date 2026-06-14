@@ -4,13 +4,19 @@ from collections import Counter, defaultdict
 
 from app.domain import DocumentChunk
 from app.services.sample_corpus import build_sample_corpus
-from app.services.vector_store import MemoryVectorStore
+from app.services.vector_store import FaissVectorStore
 
 
 class DocumentRegistry:
-    def __init__(self, vector_store: MemoryVectorStore) -> None:
+    def __init__(self, vector_store: FaissVectorStore) -> None:
         self.vector_store = vector_store
-        self._chunks: list[DocumentChunk] = []
+        self._chunks: list[DocumentChunk] = list(vector_store.chunks)
+
+    def initialize_demo(self) -> None:
+        existing = {chunk.id for chunk in self._chunks}
+        missing = [chunk for chunk in build_sample_corpus() if chunk.id not in existing]
+        if missing:
+            self.add(missing)
 
     def reset_demo(self) -> None:
         self.vector_store.clear()
@@ -18,8 +24,10 @@ class DocumentRegistry:
         self.vector_store.add(self._chunks)
 
     def add(self, chunks: list[DocumentChunk]) -> None:
-        self._chunks.extend(chunks)
-        self.vector_store.add(chunks)
+        existing = {chunk.id for chunk in self._chunks}
+        new_chunks = [chunk for chunk in chunks if chunk.id not in existing]
+        self._chunks.extend(new_chunks)
+        self.vector_store.add(new_chunks)
 
     def documents(self) -> list[dict]:
         grouped: dict[str, list[DocumentChunk]] = defaultdict(list)

@@ -1,16 +1,30 @@
 from __future__ import annotations
 
 import math
+import re
 from collections import Counter
 
 from app.domain import DocumentChunk, SearchHit
-from app.services.embedding import tokenize
-from app.services.vector_store import MemoryVectorStore
+from app.services.reranker import Reranker
+from app.services.vector_store import FaissVectorStore
+
+TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+
+
+def tokenize(text: str) -> list[str]:
+    return TOKEN_PATTERN.findall(text.lower())
 
 
 class HybridRetriever:
-    def __init__(self, vector_store: MemoryVectorStore) -> None:
+    def __init__(
+        self,
+        vector_store: FaissVectorStore,
+        reranker: Reranker,
+        candidate_limit: int = 10,
+    ) -> None:
         self.vector_store = vector_store
+        self.reranker = reranker
+        self.candidate_limit = candidate_limit
 
     def search(
         self,
@@ -18,7 +32,7 @@ class HybridRetriever:
         limit: int = 4,
         document_ids: set[str] | None = None,
     ) -> list[SearchHit]:
-        candidate_limit = max(limit * 4, 12)
+        candidate_limit = max(limit, self.candidate_limit)
         semantic = self.vector_store.search(query, candidate_limit, document_ids)
         semantic_scores = {chunk.id: max(score, 0.0) for chunk, score in semantic}
 
@@ -42,8 +56,8 @@ class HybridRetriever:
             for chunk_id in candidate_ids
         ]
 
-        reranked = self._rerank(query, hits)
-        return sorted(reranked, key=lambda hit: hit.rerank_score, reverse=True)[:limit]
+        candidates = sorted(hits, key=lambda hit: hit.score, reverse=True)[:candidate_limit]
+        return self.reranker.rerank(query, candidates)[:limit]
 
     @staticmethod
     def _bm25(query: str, chunks: list[DocumentChunk]) -> dict[str, float]:
@@ -71,28 +85,3 @@ class HybridRetriever:
 
         maximum = max(raw_scores.values(), default=0.0) or 1.0
         return {chunk_id: score / maximum for chunk_id, score in raw_scores.items()}
-
-    @staticmethod
-    def _rerank(query: str, hits: list[SearchHit]) -> list[SearchHit]:
-        query_tokens = set(tokenize(query))
-        modality_terms = {
-            "chart": {"chart", "figure", "graph", "trend", "plot"},
-            "table": {"table", "row", "column", "compare"},
-            "image": {"image", "photo", "diagram"},
-            "scan": {"scan", "scanned", "handwritten"},
-        }
-        for hit in hits:
-            chunk_tokens = set(tokenize(hit.chunk.content))
-            overlap = len(query_tokens & chunk_tokens) / max(len(query_tokens), 1)
-            modality_boost = 0.0
-            expected_terms = modality_terms.get(hit.chunk.modality, set())
-            if query_tokens & expected_terms:
-                modality_boost = 0.12
-            hit.rerank_score = (
-                0.5 * hit.semantic_score
-                + 0.3 * hit.lexical_score
-                + 0.2 * overlap
-                + modality_boost
-            )
-        return hits
-

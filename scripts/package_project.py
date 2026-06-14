@@ -21,10 +21,16 @@ EXCLUDED_FILES = {
     OUTPUT.name,
 }
 EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".log"}
+EXCLUDED_PATH_PREFIXES = {
+    ("backend", "data", "cache"),
+    ("backend", "data", "index"),
+}
 
 
 def should_include(path: Path) -> bool:
     relative = path.relative_to(ROOT)
+    if any(relative.parts[: len(prefix)] == prefix for prefix in EXCLUDED_PATH_PREFIXES):
+        return False
     if any(part in EXCLUDED_DIRS for part in relative.parts):
         return False
     is_published_sample_log = relative.parts[:2] == ("samples", "logs") and path.suffix == ".log"
