@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     frontend_origin: str = "http://localhost:5173"
+    frontend_origin_regex: str | None = None
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-2.5-flash"
     vision_model: str = "gemini-2.5-flash"

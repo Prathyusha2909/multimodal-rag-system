@@ -34,6 +34,8 @@ The default synthesizer extracts relevant sentences and appends citation markers
 
 Uploaded source files are stored in `backend/data/uploads/`. Extracted chunks, SentenceTransformer vectors, model files, and reranker scores are cached under `backend/data/cache/`. FAISS vectors and chunk metadata persist under `backend/data/index/`. These generated directories are excluded from Git.
 
+For Render deployment, the Docker image includes the model files and prebuilt demo index. The free Render filesystem remains ephemeral at runtime, so uploaded files and runtime index additions are reset when the service restarts. A paid persistent disk is required for durable hosted uploads.
+
 ## Multimodal Boundary
 
 Table extraction and uploaded-image understanding are implemented. Gemini Vision can interpret an uploaded chart image, while OCR preserves visible text. This version does not render full PDF pages through Gemini Vision, so chart understanding inside arbitrary uploaded PDFs depends on extractable text unless the chart is uploaded separately as an image.

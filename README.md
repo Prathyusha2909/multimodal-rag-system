@@ -135,6 +135,15 @@ python evaluation/run_deepeval.py
 
 ## Quick Start
 
+### Deploy
+
+[![Deploy API to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Prathyusha2909/multimodal-rag-system)
+[![Deploy UI with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FPrathyusha2909%2Fmultimodal-rag-system&project-name=prathyusha2909-multimodal-rag&repository-name=multimodal-rag-system&root-directory=frontend)
+
+Deploy the Render API first, then deploy the Vercel frontend. The checked-in production frontend configuration targets `https://prathyusha2909-multimodal-rag-api.onrender.com`; override `VITE_API_URL` in Vercel if Render assigns a different URL.
+
+The Render Docker image pre-caches both SentenceTransformers models and the demo FAISS index. Render Free spins down after 15 idle minutes and uses an ephemeral filesystem, so uploaded documents disappear after a restart or redeploy. Use a paid Render service with a persistent disk for durable uploads and indexes.
+
 ### Docker
 
 ```bash
@@ -211,6 +220,8 @@ multimodal-rag-system/
 |-- screenshots/          # generated UI screenshots
 |-- demo/demo.mp4         # generated walkthrough
 |-- scripts/              # sample and visual asset generators
+|-- render.yaml           # Render API Blueprint
+|-- frontend/vercel.json  # Vercel frontend build configuration
 `-- docker-compose.yml
 ```
 
