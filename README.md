@@ -10,27 +10,24 @@
 
 A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tables, and text files. It uses SentenceTransformer embeddings with FAISS vector search, BM25 hybrid retrieval, cross-encoder reranking, and document/page citations.
 
-![Multimodal RAG dashboard](screenshots/home-page.png)
+## Live Demo
 
-## Honest Scope
+[**Open Live Demo**](https://multimodal-rag-system-pink.vercel.app/) | [API Docs](https://prathyusha2909-multimodal-rag-api.onrender.com/docs) | [GitHub](https://github.com/Prathyusha2909/multimodal-rag-system)
 
-This repository demonstrates a prototype with a public portfolio deployment, not a production-grade service.
+![46-second workflow demo](demo/demo.gif)
 
-- Text PDFs are parsed page by page with `pypdf`; detected tables are extracted separately with `pdfplumber`.
-- Image uploads use Tesseract OCR when its binary is installed and optional Gemini Vision captioning when an API key is configured.
-- The included synthetic reports have curated chart, table, image, and scan descriptions so retrieval can also be tested without external APIs.
-- Gemini Vision is applied to uploaded image files. This version does not render every PDF page or embedded PDF figure through a vision model.
-- Gemini can be enabled for answer synthesis; the default generator is deterministic and local.
-- BGE-small and the MS MARCO cross-encoder are loaded through the `sentence-transformers` package on first use.
-- No private documents, internal servers, real hardware, or company data are used.
+## Architecture
 
-## Problem Statement
+![Multimodal RAG architecture](docs/architecture.png)
 
-Text-only RAG loses useful context when evidence is presented as a table, chart, scanned note, or image. This prototype keeps text, table, and visual descriptions as modality-aware chunks with source metadata, then retrieves and reranks them together.
-
-## Implemented Architecture
-
-![Architecture](docs/architecture.png)
+| Retrieval setting | Implemented value |
+| --- | --- |
+| Embedding model | `BAAI/bge-small-en-v1.5` (384 dimensions) |
+| Vector index | FAISS `IndexFlatIP` with normalized embeddings |
+| Lexical retrieval | BM25 candidate fusion |
+| Chunking | 500 tokens, 100-token overlap |
+| Candidate pool | Top 10 before reranking |
+| Reranker | `cross-encoder/ms-marco-MiniLM-L6-v2` |
 
 ```text
 PDF / image / text / CSV upload
@@ -58,6 +55,22 @@ pypdf text + pdfplumber tables + Tesseract/Gemini Vision
 ```
 
 Read the [architecture notes](docs/ARCHITECTURE.md) and [API reference](docs/API.md).
+
+## Honest Scope
+
+This repository demonstrates a prototype with a public portfolio deployment, not a production-grade service.
+
+- Text PDFs are parsed page by page with `pypdf`; detected tables are extracted separately with `pdfplumber`.
+- Image uploads use Tesseract OCR when its binary is installed and optional Gemini Vision captioning when an API key is configured.
+- The included synthetic reports have curated chart, table, image, and scan descriptions so retrieval can also be tested without external APIs.
+- Gemini Vision is applied to uploaded image files. This version does not render every PDF page or embedded PDF figure through a vision model.
+- Gemini can be enabled for answer synthesis; the default generator is deterministic and local.
+- BGE-small and the MS MARCO cross-encoder are loaded through the `sentence-transformers` package on first use.
+- No private documents, internal servers, real hardware, or company data are used.
+
+## Problem Statement
+
+Text-only RAG loses useful context when evidence is presented as a table, chart, scanned note, or image. This prototype keeps text, table, and visual descriptions as modality-aware chunks with source metadata, then retrieves and reranks them together.
 
 ## Real Retrieval Implementation
 
@@ -126,6 +139,24 @@ Responses were evaluated using **DeepEval 3.9.9 on a custom eight-question test 
 | Required-fact coverage | 95.8% |
 
 These results describe only [`evaluation/test_set.json`](evaluation/test_set.json); they are not claims about production accuracy or general hallucination reduction. See the generated [evaluation summary](samples/outputs/evaluation-summary.md) and [per-question results](samples/outputs/deepeval-results.json).
+
+### Measured Latency
+
+Measured on **June 14, 2026** against the public Render Free service using five representative questions, `top_k=4`, and the deterministic local answer generator.
+
+| Metric | Measured result |
+| --- | ---: |
+| Average retrieval latency, all 5 queries | 20.4 s |
+| Average end-to-end HTTP latency, all 5 queries | 20.8 s |
+| Average warm retrieval latency, final 4 queries | 12.5 s |
+| First query after service/model start | 51.9 s |
+| Citations returned per query | 4 |
+
+These are free-tier portfolio measurements, not an SLA. Render sleep state, model initialization, network distance, and instance load can change the result. See the [raw benchmark output](samples/outputs/live-latency-benchmark.json) or rerun it with:
+
+```bash
+python evaluation/benchmark_live.py
+```
 
 Reproduce the evaluation:
 
@@ -217,11 +248,11 @@ curl -X POST http://localhost:8000/api/v1/query \
 multimodal-rag-system/
 |-- backend/              # FastAPI app, tests, caches, and persistent FAISS data
 |-- frontend/             # React interface
-|-- evaluation/           # DeepEval test set and runner
+|-- evaluation/           # DeepEval suite and live latency benchmark
 |-- samples/              # PDFs, logs, issues, and outputs
 |-- docs/                 # architecture and API notes
 |-- screenshots/          # generated UI screenshots
-|-- demo/demo.mp4         # generated walkthrough
+|-- demo/                 # 46-second GIF and 2-minute MP4 walkthroughs
 |-- scripts/              # sample and visual asset generators
 |-- render.yaml           # Render API Blueprint
 |-- frontend/vercel.json  # Vercel frontend build configuration

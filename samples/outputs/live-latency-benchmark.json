@@ -1,0 +1,49 @@
+{
+  "measured_at": "2026-06-14",
+  "environment": "Render Free, deterministic local answer generator, top_k=4",
+  "base_url": "https://prathyusha2909-multimodal-rag-api.onrender.com",
+  "queries": [
+    {
+      "question": "What is the revenue trend shown in Figure 3?",
+      "retrieval_ms": 51894,
+      "generation_ms": 0,
+      "wall_ms": 52457,
+      "citations": 4
+    },
+    {
+      "question": "Compare online and store profit in Table 2.",
+      "retrieval_ms": 12899,
+      "generation_ms": 0,
+      "wall_ms": 13187,
+      "citations": 4
+    },
+    {
+      "question": "What is the principal operational risk in the scanned note?",
+      "retrieval_ms": 12932,
+      "generation_ms": 0,
+      "wall_ms": 13392,
+      "citations": 4
+    },
+    {
+      "question": "How did renewable electricity adoption change by 2025?",
+      "retrieval_ms": 12635,
+      "generation_ms": 0,
+      "wall_ms": 12898,
+      "citations": 4
+    },
+    {
+      "question": "Explain the relationship between sales and profit shown in the graph.",
+      "retrieval_ms": 11724,
+      "generation_ms": 0,
+      "wall_ms": 12011,
+      "citations": 4
+    }
+  ],
+  "summary": {
+    "query_count": 5,
+    "mean_retrieval_ms": 20417,
+    "mean_wall_ms": 20789,
+    "warm_mean_retrieval_ms": 12548,
+    "first_query_retrieval_ms": 51894
+  }
+}
