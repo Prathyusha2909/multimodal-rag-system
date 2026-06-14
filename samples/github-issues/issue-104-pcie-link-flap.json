@@ -1,0 +1,14 @@
+{
+  "notice": "Synthetic GitHub issue used as a retrieval sample; not copied from a real repository.",
+  "number": 104,
+  "title": "PCIe link falls back to Gen3 after equalization timeout",
+  "state": "open",
+  "labels": ["firmware", "pcie", "validation"],
+  "body": "During a simulated Gen4 validation run, the endpoint reaches Polling.Active but phase 3 equalization times out. The link recovers at Gen3 x4, records BadDLLP errors, and briefly drops from L0. Reproduce with sample log pcie_link_training.log.",
+  "expected_follow_up": [
+    "Compare transmitter preset and receiver coefficient settings.",
+    "Repeat at Gen3 and Gen4 to isolate speed sensitivity.",
+    "Correlate BadDLLP count with the equalization timeout."
+  ]
+}
+

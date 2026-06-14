@@ -1,0 +1,59 @@
+[
+  {
+    "id": "revenue-trend",
+    "question": "What is the revenue trend shown in Figure 3?",
+    "expected_chunk_ids": ["nova-08-chart"],
+    "expected_pages": [8],
+    "required_facts": ["$78M", "$128M", "2025"]
+  },
+  {
+    "id": "segment-profit",
+    "question": "Compare online and store profit in Table 2.",
+    "expected_chunk_ids": ["nova-09-table"],
+    "expected_pages": [9],
+    "required_facts": ["$15M", "$8M"]
+  },
+  {
+    "id": "sales-profit",
+    "question": "Explain the relationship between sales and operating profit.",
+    "expected_chunk_ids": ["nova-16-chart"],
+    "expected_pages": [16],
+    "required_facts": ["$128M", "$24M", "18.8%"]
+  },
+  {
+    "id": "customer-growth",
+    "question": "How many active customers did Nova Retail have?",
+    "expected_chunk_ids": ["nova-12-text"],
+    "expected_pages": [12],
+    "required_facts": ["3.2 million", "14%"]
+  },
+  {
+    "id": "distribution-network",
+    "question": "Which cities received new distribution hubs?",
+    "expected_chunk_ids": ["nova-14-image"],
+    "expected_pages": [14],
+    "required_facts": ["Pune", "Hyderabad", "Chennai"]
+  },
+  {
+    "id": "supply-risk",
+    "question": "What is the principal operational risk in the scanned note?",
+    "expected_chunk_ids": ["nova-18-scan"],
+    "expected_pages": [18],
+    "required_facts": ["supply-chain concentration"]
+  },
+  {
+    "id": "emissions",
+    "question": "What share of measured emissions comes from Scope 3?",
+    "expected_chunk_ids": ["atlas-04-table"],
+    "expected_pages": [4],
+    "required_facts": ["82%"]
+  },
+  {
+    "id": "renewable-energy",
+    "question": "How did renewable electricity adoption change by 2025?",
+    "expected_chunk_ids": ["atlas-07-chart"],
+    "expected_pages": [7],
+    "required_facts": ["24%", "68%"]
+  }
+]
+
