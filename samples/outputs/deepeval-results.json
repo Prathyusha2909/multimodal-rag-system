@@ -1,5 +1,5 @@
 {
-  "framework": "DeepEval 3.9.9 custom metrics over BGE-small, FAISS, BM25, and MiniLM reranking",
+  "framework": "DeepEval 3.9.9 custom metrics over SentenceTransformers, FAISS, BM25, and cross-encoder reranking",
   "test_cases": 8,
   "summary": {
     "Retrieval Hit@4": 1.0,

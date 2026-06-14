@@ -22,7 +22,7 @@ export const demoStats = {
   pages: 9,
   chunks: 9,
   modalities: { text: 2, table: 2, chart: 3, image: 1, scan: 1 },
-  index_backend: "faiss:BAAI/bge-small-en-v1.5",
+  index_backend: "faiss:sentence-transformers:BAAI/bge-small-en-v1.5",
 };
 
 export const initialResult = {
