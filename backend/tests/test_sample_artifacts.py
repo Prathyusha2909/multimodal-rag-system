@@ -8,6 +8,20 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class SampleArtifactTests(unittest.TestCase):
+    def test_readme_describes_real_retrieval_stack(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        forbidden = {
+            "local hash-vector search",
+            "Local hash-vector and BM25 retrieval",
+            "Local hash vectors, BM25, deterministic reranker",
+            r".venv\S cripts\a ctivate",
+        }
+
+        self.assertIn("SentenceTransformer embeddings with FAISS vector search", readme)
+        self.assertIn(r".venv\Scripts\activate", readme)
+        for phrase in forbidden:
+            self.assertNotIn(phrase, readme)
+
     def test_nova_pdf_contains_chart_and_table_text(self):
         pdf = PdfReader(ROOT / "samples" / "documents" / "Nova_Retail_Annual_Report_2025.pdf")
 
@@ -26,4 +40,3 @@ class SampleArtifactTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

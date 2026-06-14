@@ -4,6 +4,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-API-009688)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-UI-61DAFB)](https://react.dev/)
+[![Retrieval](https://img.shields.io/badge/Retrieval-SentenceTransformers%20%2B%20FAISS-8A2BE2)](backend/app/services/embedding.py)
 [![License: MIT](https://img.shields.io/badge/License-MIT-b8ee45.svg)](LICENSE)
 
 A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tables, and text files. It uses SentenceTransformer embeddings with FAISS vector search, BM25 hybrid retrieval, cross-encoder reranking, and document/page citations.
