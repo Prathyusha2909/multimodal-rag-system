@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: prathyusha2909-multimodal-rag-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: FRONTEND_ORIGIN
+        value: https://prathyusha2909-multimodal-rag.vercel.app
+      - key: FRONTEND_ORIGIN_REGEX
+        value: ^https://.*\.vercel\.app$
+      - key: HF_HUB_DISABLE_TELEMETRY
+        value: "1"
+      - key: USE_TF
+        value: "0"

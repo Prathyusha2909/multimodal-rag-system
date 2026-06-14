@@ -17,6 +17,7 @@ class ApiTests(unittest.TestCase):
         root = Path(cls.temp_dir.name)
         settings = Settings(
             frontend_origin="http://testserver",
+            frontend_origin_regex=r"https://.*\.vercel\.app",
             upload_dir=root / "uploads",
             cache_dir=root / "cache",
             index_dir=root / "index",
@@ -42,6 +43,21 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(health.json()["status"], "healthy")
         self.assertEqual(stats.status_code, 200)
         self.assertEqual(stats.json()["index_backend"], "faiss:deterministic-test-embedding")
+
+    def test_vercel_preview_origin_is_allowed(self):
+        response = self.client.options(
+            "/api/v1/query",
+            headers={
+                "Origin": "https://multimodal-rag-preview.vercel.app",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["access-control-allow-origin"],
+            "https://multimodal-rag-preview.vercel.app",
+        )
 
     def test_query_returns_ranked_citations(self):
         response = self.client.post(
