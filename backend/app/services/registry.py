@@ -26,8 +26,8 @@ class DocumentRegistry:
     def add(self, chunks: list[DocumentChunk]) -> None:
         existing = {chunk.id for chunk in self._chunks}
         new_chunks = [chunk for chunk in chunks if chunk.id not in existing]
-        self._chunks.extend(new_chunks)
         self.vector_store.add(new_chunks)
+        self._chunks.extend(new_chunks)
 
     def documents(self) -> list[dict]:
         grouped: dict[str, list[DocumentChunk]] = defaultdict(list)

@@ -36,6 +36,7 @@ def create_app(
     embedder = embedder or SentenceTransformerProvider(
         model_name=settings.embedding_model,
         cache_dir=settings.cache_dir,
+        batch_size=settings.embedding_batch_size,
     )
     vector_store = FaissVectorStore(embedder, settings.index_dir)
     reranker = reranker or CrossEncoderReranker(settings.reranker_model, settings.cache_dir)
@@ -48,6 +49,7 @@ def create_app(
         GeminiVisionAnalyzer(settings.gemini_api_key, settings.vision_model),
     )
     initialization_lock = threading.Lock()
+    pipeline_lock = threading.Lock()
     initialized = False
 
     def ensure_initialized() -> None:
@@ -97,27 +99,30 @@ def create_app(
         if len(content) > MAX_UPLOAD_BYTES:
             raise HTTPException(status_code=413, detail="File exceeds the 25 MB upload limit")
         try:
-            chunks = ingestor.ingest(filename, content)
+            with pipeline_lock:
+                reranker.release_model()
+                chunks = ingestor.ingest(filename, content)
+                if not chunks:
+                    raise HTTPException(status_code=422, detail="No indexable content was found")
+                registry.add(chunks)
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
-        if not chunks:
-            raise HTTPException(status_code=422, detail="No indexable content was found")
 
         (settings.upload_dir / filename).write_bytes(content)
-        registry.add(chunks)
         return next(doc for doc in registry.documents() if doc["id"] == chunks[0].document_id)
 
     @app.post("/api/v1/query", response_model=QueryResponse)
     def query(request: QueryRequest) -> dict:
         ensure_initialized()
-        retrieval_started = time.perf_counter()
-        filters = set(request.document_ids) if request.document_ids else None
-        hits = retriever.search(request.question, request.top_k, filters)
-        retrieval_ms = int((time.perf_counter() - retrieval_started) * 1000)
+        with pipeline_lock:
+            retrieval_started = time.perf_counter()
+            filters = set(request.document_ids) if request.document_ids else None
+            hits = retriever.search(request.question, request.top_k, filters)
+            retrieval_ms = int((time.perf_counter() - retrieval_started) * 1000)
 
-        generation_started = time.perf_counter()
-        answer, model = generator.generate(request.question, hits)
-        generation_ms = int((time.perf_counter() - generation_started) * 1000)
+            generation_started = time.perf_counter()
+            answer, model = generator.generate(request.question, hits)
+            generation_ms = int((time.perf_counter() - generation_started) * 1000)
         return {
             "answer": answer,
             "citations": [

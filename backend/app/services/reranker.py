@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ctypes
+import gc
 import hashlib
 import json
 import os
@@ -16,6 +18,8 @@ class Reranker(Protocol):
     name: str
 
     def rerank(self, query: str, hits: list[SearchHit]) -> list[SearchHit]: ...
+
+    def release_model(self) -> None: ...
 
 
 class HeuristicReranker:
@@ -34,6 +38,9 @@ class HeuristicReranker:
             modality_boost = 0.1 if query_tokens & modality_terms.get(hit.chunk.modality, set()) else 0.0
             hit.rerank_score = 0.5 * hit.semantic_score + 0.3 * hit.lexical_score + 0.2 * overlap + modality_boost
         return sorted(hits, key=lambda hit: hit.rerank_score, reverse=True)
+
+    def release_model(self) -> None:
+        return None
 
 
 class CrossEncoderReranker:
@@ -103,6 +110,15 @@ class CrossEncoderReranker:
                 local_files_only=self._has_cached_model(),
             )
         return self._model
+
+    def release_model(self) -> None:
+        if self._model is not None:
+            self._model = None
+            gc.collect()
+            try:
+                ctypes.CDLL("libc.so.6").malloc_trim(0)
+            except (AttributeError, OSError):
+                pass
 
     def _has_cached_model(self) -> bool:
         model_dir = self.model_cache_dir / f"models--{self.model_name.replace('/', '--')}"

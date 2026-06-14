@@ -28,10 +28,12 @@ class SentenceTransformerProvider:
         model_name: str = "BAAI/bge-small-en-v1.5",
         cache_dir: Path | str = Path("data/cache"),
         dimension: int = 384,
+        batch_size: int = 4,
     ) -> None:
         self.model_name = model_name
         self.name = f"sentence-transformers:{model_name}"
         self.dimension = dimension
+        self.batch_size = batch_size
         self.cache_dir = Path(cache_dir)
         self.model_cache_dir = self.cache_dir / "models" / "sentence-transformers"
         model_key = hashlib.sha256(self.name.encode("utf-8")).hexdigest()[:12]
@@ -59,6 +61,7 @@ class SentenceTransformerProvider:
         if missing_texts:
             generated = self._get_model().encode(
                 missing_texts,
+                batch_size=self.batch_size,
                 convert_to_numpy=True,
                 normalize_embeddings=True,
                 show_progress_bar=False,

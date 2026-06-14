@@ -18,3 +18,5 @@ services:
         value: "1"
       - key: USE_TF
         value: "0"
+      - key: EMBEDDING_BATCH_SIZE
+        value: "4"

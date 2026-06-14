@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.5-flash"
     vision_model: str = "gemini-2.5-flash"
     embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_batch_size: int = 4
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
     chunk_size_tokens: int = 500
     chunk_overlap_tokens: int = 100
