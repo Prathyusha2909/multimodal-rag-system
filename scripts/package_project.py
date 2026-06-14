@@ -27,7 +27,8 @@ def should_include(path: Path) -> bool:
     relative = path.relative_to(ROOT)
     if any(part in EXCLUDED_DIRS for part in relative.parts):
         return False
-    if path.name in EXCLUDED_FILES or path.suffix in EXCLUDED_SUFFIXES:
+    is_published_sample_log = relative.parts[:2] == ("samples", "logs") and path.suffix == ".log"
+    if path.name in EXCLUDED_FILES or (path.suffix in EXCLUDED_SUFFIXES and not is_published_sample_log):
         return False
     if relative.parts[:3] == ("backend", "data", "uploads") and path.name != ".gitkeep":
         return False

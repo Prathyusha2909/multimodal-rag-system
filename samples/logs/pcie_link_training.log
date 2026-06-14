@@ -1,0 +1,10 @@
+# Synthetic sample log for demonstration only. It is not captured from real hardware.
+2026-02-18T10:14:21.114Z INFO  pcie0 LTSSM state=Detect.Active lane_width=x4 target_speed=Gen4
+2026-02-18T10:14:21.128Z INFO  pcie0 LTSSM state=Polling.Active receiver_detected=true
+2026-02-18T10:14:21.192Z WARN  pcie0 recovery_attempt=1 reason=equalization_timeout phase=3
+2026-02-18T10:14:21.235Z INFO  pcie0 negotiated_speed=Gen3 negotiated_width=x4
+2026-02-18T10:14:22.001Z WARN  pcie0 correctable_error=BadDLLP count=14 window_ms=500
+2026-02-18T10:14:22.518Z ERROR pcie0 link_down=true previous_state=L0 trigger=receiver_error
+2026-02-18T10:14:22.521Z INFO  pcie0 recovery_attempt=2 reset=hot_reset
+2026-02-18T10:14:22.803Z INFO  pcie0 negotiated_speed=Gen3 negotiated_width=x4 state=L0
+
