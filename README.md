@@ -57,6 +57,21 @@ pypdf text + pdfplumber tables + Tesseract/Gemini Vision
 
 Read the [architecture notes](docs/ARCHITECTURE.md) and [API reference](docs/API.md).
 
+## Real Retrieval Implementation
+
+The application runtime uses model-generated semantic embeddings and a persistent vector index.
+
+```text
+SentenceTransformer("BAAI/bge-small-en-v1.5")
+        -> normalized 384-dimensional embeddings
+        -> FAISS IndexFlatIP vector search
+        -> BM25 candidate fusion (top 10)
+        -> CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")
+        -> top 3-5 evidence chunks
+```
+
+The implementation is visible in [`embedding.py`](backend/app/services/embedding.py), [`vector_store.py`](backend/app/services/vector_store.py), [`retriever.py`](backend/app/services/retriever.py), and [`reranker.py`](backend/app/services/reranker.py).
+
 ## Features
 
 - PDF, PNG, JPG, WEBP, TIFF, TXT, Markdown, and CSV ingestion
@@ -130,13 +145,19 @@ Open `http://localhost:5173` for the UI or `http://localhost:8000/docs` for Open
 
 ### Local Development
 
-```bash
+Generic Windows activation command: `.venv\Scripts\activate`
+
+Windows PowerShell:
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 python -m pip install -r backend/requirements.txt
 cd backend
 python -m uvicorn app.main:app --reload
 ```
+
+Windows Command Prompt activation equivalent: `.venv\Scripts\activate.bat`.
 
 In a second terminal:
 
