@@ -11,7 +11,7 @@ services:
       - key: APP_ENV
         value: production
       - key: FRONTEND_ORIGIN
-        value: https://prathyusha2909-multimodal-rag.vercel.app
+        value: https://multimodal-rag-system-pink.vercel.app
       - key: FRONTEND_ORIGIN_REGEX
         value: ^https://.*\.vercel\.app$
       - key: HF_HUB_DISABLE_TELEMETRY

@@ -5,6 +5,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-API-009688)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-UI-61DAFB)](https://react.dev/)
 [![Retrieval](https://img.shields.io/badge/Retrieval-SentenceTransformers%20%2B%20FAISS-8A2BE2)](backend/app/services/embedding.py)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-000000)](https://multimodal-rag-system-pink.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-b8ee45.svg)](LICENSE)
 
 A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tables, and text files. It uses SentenceTransformer embeddings with FAISS vector search, BM25 hybrid retrieval, cross-encoder reranking, and document/page citations.
@@ -13,7 +14,7 @@ A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tab
 
 ## Honest Scope
 
-This repository demonstrates a local prototype, not a production deployment.
+This repository demonstrates a prototype with a public portfolio deployment, not a production-grade service.
 
 - Text PDFs are parsed page by page with `pypdf`; detected tables are extracted separately with `pdfplumber`.
 - Image uploads use Tesseract OCR when its binary is installed and optional Gemini Vision captioning when an API key is configured.
@@ -137,6 +138,8 @@ python evaluation/run_deepeval.py
 
 ### Deploy
 
+**Live:** [Web application](https://multimodal-rag-system-pink.vercel.app/) | [API documentation](https://prathyusha2909-multimodal-rag-api.onrender.com/docs) | [API health](https://prathyusha2909-multimodal-rag-api.onrender.com/health)
+
 [![Deploy API to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Prathyusha2909/multimodal-rag-system)
 [![Deploy UI with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FPrathyusha2909%2Fmultimodal-rag-system&project-name=prathyusha2909-multimodal-rag&repository-name=multimodal-rag-system&root-directory=frontend)
 
@@ -238,6 +241,8 @@ npm run build
 ## Resume Wording
 
 > Built a multimodal document RAG system that extracts PDF text and tables, analyzes uploaded images with OCR and optional Gemini Vision, indexes 500-token chunks using SentenceTransformer embeddings and FAISS vector search, and reranks hybrid results with a CrossEncoder. Evaluated responses using DeepEval on a custom eight-question test set.
+
+[Live Demo](https://multimodal-rag-system-pink.vercel.app/) | [GitHub](https://github.com/Prathyusha2909/multimodal-rag-system)
 
 ## License
 
