@@ -4,11 +4,11 @@
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-API-009688)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-UI-61DAFB)](https://react.dev/)
-[![Retrieval](https://img.shields.io/badge/Retrieval-SentenceTransformers%20%2B%20FAISS-8A2BE2)](backend/app/services/embedding.py)
+[![Retrieval](https://img.shields.io/badge/Retrieval-BGE--small%20%2B%20FAISS-8A2BE2)](backend/app/services/embedding.py)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-000000)](https://multimodal-rag-system-pink.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-b8ee45.svg)](LICENSE)
 
-A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tables, and text files. It uses SentenceTransformer embeddings with FAISS vector search, BM25 hybrid retrieval, cross-encoder reranking, and document/page citations.
+A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tables, and text files. It uses BGE-small embeddings with FAISS vector search, BM25 hybrid retrieval, cross-encoder reranking, and document/page citations.
 
 ## Live Demo
 
@@ -23,11 +23,12 @@ A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tab
 | Retrieval setting | Implemented value |
 | --- | --- |
 | Embedding model | `BAAI/bge-small-en-v1.5` (384 dimensions) |
+| Embedding runtime | SentenceTransformers locally; FastEmbed ONNX on Render |
 | Vector index | FAISS `IndexFlatIP` with normalized embeddings |
 | Lexical retrieval | BM25 candidate fusion |
 | Chunking | 500 tokens, 100-token overlap |
 | Candidate pool | Top 10 before reranking |
-| Reranker | `cross-encoder/ms-marco-MiniLM-L6-v2` |
+| Reranker | MS MARCO MiniLM CrossEncoder; equivalent ONNX model on Render |
 
 ```text
 PDF / image / text / CSV upload
@@ -38,7 +39,7 @@ pypdf text + pdfplumber tables + Tesseract/Gemini Vision
           v
 500-token chunks + 100-token overlap + source metadata
           |
-          +---- SentenceTransformer embeddings -> FAISS vector search
+          +---- BGE-small embeddings -> FAISS vector search
           +---- BM25 lexical search
                          |
                          v
@@ -74,7 +75,7 @@ Text-only RAG loses useful context when evidence is presented as a table, chart,
 
 ## Real Retrieval Implementation
 
-The application runtime uses model-generated semantic embeddings and a persistent vector index.
+The application uses model-generated semantic embeddings and a persistent vector index. Local development and published evaluation use SentenceTransformers. The memory-constrained Render demo uses FastEmbed's ONNX runtime with the same BGE-small embedding model and the equivalent MS MARCO MiniLM reranker.
 
 ```text
 SentenceTransformer("BAAI/bge-small-en-v1.5")
@@ -87,13 +88,15 @@ SentenceTransformer("BAAI/bge-small-en-v1.5")
 
 The implementation is visible in [`embedding.py`](backend/app/services/embedding.py), [`vector_store.py`](backend/app/services/vector_store.py), [`retriever.py`](backend/app/services/retriever.py), and [`reranker.py`](backend/app/services/reranker.py).
 
+Both runtime paths are real embedding retrieval; the hosted ONNX path avoids loading PyTorch during document indexing so PDF uploads fit the free service memory limit.
+
 ## Features
 
 - PDF, PNG, JPG, WEBP, TIFF, TXT, Markdown, and CSV ingestion
 - Page-level PDF text extraction and separate `pdfplumber` table chunks
 - Optional Tesseract OCR and Gemini Vision analysis for image uploads
 - 500-token chunks with 100-token overlap and filename, page, chunk, and token metadata
-- `BAAI/bge-small-en-v1.5` embeddings through `SentenceTransformer`
+- `BAAI/bge-small-en-v1.5` embeddings through SentenceTransformers or FastEmbed ONNX
 - Persistent cosine-similarity FAISS vector search plus BM25 lexical retrieval
 - Top-10 candidate retrieval and `cross-encoder/ms-marco-MiniLM-L6-v2` reranking
 - On-disk caches for extraction, embeddings, reranker scores, model files, and the vector index
@@ -109,7 +112,7 @@ The implementation is visible in [`embedding.py`](backend/app/services/embedding
 | --- | --- |
 | Backend | Python, FastAPI, Pydantic |
 | Frontend | React, Vite |
-| Retrieval | SentenceTransformers, BGE-small, FAISS, BM25, CrossEncoder |
+| Retrieval | SentenceTransformers, FastEmbed ONNX, BGE-small, FAISS, BM25, CrossEncoder |
 | Parsing | pypdf, pdfplumber, optional Tesseract OCR |
 | Vision | Optional Gemini 2.5 Flash for uploaded images/charts |
 | Generation | Local extractive synthesizer, optional Gemini 2.5 Flash |
@@ -271,7 +274,7 @@ npm run build
 
 ## Resume Wording
 
-> Built a multimodal document RAG system that extracts PDF text and tables, analyzes uploaded images with OCR and optional Gemini Vision, indexes 500-token chunks using SentenceTransformer embeddings and FAISS vector search, and reranks hybrid results with a CrossEncoder. Evaluated responses using DeepEval on a custom eight-question test set.
+> Built a multimodal document RAG system that extracts PDF text and tables, analyzes uploaded images with OCR and optional Gemini Vision, indexes 500-token chunks using BGE-small embeddings and FAISS vector search, and reranks hybrid results with a CrossEncoder. Evaluated responses using DeepEval on a custom eight-question test set.
 
 [Live Demo](https://multimodal-rag-system-pink.vercel.app/) | [GitHub](https://github.com/Prathyusha2909/multimodal-rag-system)
 

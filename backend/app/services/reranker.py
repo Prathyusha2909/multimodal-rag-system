@@ -44,13 +44,21 @@ class HeuristicReranker:
 
 
 class CrossEncoderReranker:
-    def __init__(self, model_name: str, cache_dir: Path | str) -> None:
-        self.name = model_name
+    def __init__(
+        self,
+        model_name: str,
+        cache_dir: Path | str,
+        runtime: str = "sentence-transformers",
+        threads: int = 1,
+    ) -> None:
+        self.runtime = runtime
+        self.threads = threads
+        self.name = f"{runtime}:{model_name}"
         self.model_name = model_name
         self.cache_dir = Path(cache_dir)
-        self.model_cache_dir = self.cache_dir / "models" / "sentence-transformers"
+        self.model_cache_dir = self.cache_dir / "models" / runtime
         model_key = hashlib.sha256(
-            f"sentence-transformers:{model_name}".encode("utf-8")
+            self.name.encode("utf-8")
         ).hexdigest()[:12]
         self.score_cache_path = self.cache_dir / "reranker" / f"{model_key}.json"
         self.score_cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -87,12 +95,15 @@ class CrossEncoderReranker:
                 missing_documents.append(document)
                 missing_indices.append(index)
         if missing_documents:
-            pairs = [(query, document) for document in missing_documents]
-            generated = self._get_model().predict(
-                pairs,
-                batch_size=16,
-                show_progress_bar=False,
-            )
+            if self.runtime == "fastembed":
+                generated = self._get_model().rerank(query, missing_documents, batch_size=4)
+            else:
+                pairs = [(query, document) for document in missing_documents]
+                generated = self._get_model().predict(
+                    pairs,
+                    batch_size=16,
+                    show_progress_bar=False,
+                )
             for index, document, score in zip(missing_indices, missing_documents, generated):
                 value = float(score)
                 values[index] = value
@@ -102,13 +113,22 @@ class CrossEncoderReranker:
 
     def _get_model(self):
         if self._model is None:
-            from sentence_transformers import CrossEncoder
+            if self.runtime == "fastembed":
+                from fastembed.rerank.cross_encoder import TextCrossEncoder
 
-            self._model = CrossEncoder(
-                self.model_name,
-                cache_dir=str(self.model_cache_dir),
-                local_files_only=self._has_cached_model(),
-            )
+                self._model = TextCrossEncoder(
+                    model_name=self.model_name,
+                    cache_dir=str(self.model_cache_dir),
+                    threads=self.threads,
+                )
+            else:
+                from sentence_transformers import CrossEncoder
+
+                self._model = CrossEncoder(
+                    self.model_name,
+                    cache_dir=str(self.model_cache_dir),
+                    local_files_only=self._has_cached_model(),
+                )
         return self._model
 
     def release_model(self) -> None:

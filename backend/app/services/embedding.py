@@ -122,3 +122,94 @@ class SentenceTransformerProvider:
 
     def _save_cached(self, text: str, kind: str, vector: np.ndarray) -> None:
         np.save(self._cache_path(text, kind), vector, allow_pickle=False)
+
+
+class FastEmbedProvider:
+    """Memory-efficient ONNX BGE embeddings for constrained CPU deployments."""
+
+    def __init__(
+        self,
+        model_name: str = "BAAI/bge-small-en-v1.5",
+        cache_dir: Path | str = Path("data/cache"),
+        dimension: int = 384,
+        batch_size: int = 4,
+        threads: int = 1,
+    ) -> None:
+        self.model_name = model_name
+        self.name = f"fastembed:{model_name}"
+        self.dimension = dimension
+        self.batch_size = batch_size
+        self.threads = threads
+        self.cache_dir = Path(cache_dir)
+        self.model_cache_dir = self.cache_dir / "models" / "fastembed"
+        model_key = hashlib.sha256(self.name.encode("utf-8")).hexdigest()[:12]
+        self.embedding_cache_dir = self.cache_dir / "embeddings" / model_key
+        self.model_cache_dir.mkdir(parents=True, exist_ok=True)
+        self.embedding_cache_dir.mkdir(parents=True, exist_ok=True)
+        self._model = None
+
+    def embed_documents(self, texts: Iterable[str]) -> np.ndarray:
+        values = list(texts)
+        if not values:
+            return np.empty((0, self.dimension), dtype="float32")
+
+        vectors: list[np.ndarray | None] = [None] * len(values)
+        missing_texts = []
+        missing_indices = []
+        for index, value in enumerate(values):
+            cached = self._load_cached(value, "document")
+            if cached is None:
+                missing_texts.append(value)
+                missing_indices.append(index)
+            else:
+                vectors[index] = cached
+
+        if missing_texts:
+            generated = self._get_model().embed(missing_texts, batch_size=self.batch_size)
+            for index, text, vector in zip(missing_indices, missing_texts, generated):
+                embedding = self._normalize(vector)
+                vectors[index] = embedding
+                self._save_cached(text, "document", embedding)
+
+        return np.vstack(vectors).astype("float32")
+
+    def embed_query(self, text: str) -> np.ndarray:
+        cached = self._load_cached(text, "query")
+        if cached is not None:
+            return cached
+        vector = next(self._get_model().embed([text], batch_size=1))
+        embedding = self._normalize(vector)
+        self._save_cached(text, "query", embedding)
+        return embedding
+
+    def _get_model(self):
+        if self._model is None:
+            from fastembed import TextEmbedding
+
+            self._model = TextEmbedding(
+                model_name=self.model_name,
+                cache_dir=str(self.model_cache_dir),
+                threads=self.threads,
+            )
+        return self._model
+
+    def _cache_path(self, text: str, kind: str) -> Path:
+        digest = hashlib.sha256(f"{kind}\0{text}".encode("utf-8")).hexdigest()
+        return self.embedding_cache_dir / f"{digest}.npy"
+
+    def _load_cached(self, text: str, kind: str) -> np.ndarray | None:
+        path = self._cache_path(text, kind)
+        if not path.exists():
+            return None
+        vector = np.load(path, allow_pickle=False).astype("float32")
+        return vector if vector.shape == (self.dimension,) else None
+
+    def _save_cached(self, text: str, kind: str, vector: np.ndarray) -> None:
+        np.save(self._cache_path(text, kind), vector, allow_pickle=False)
+
+    def _normalize(self, vector) -> np.ndarray:
+        embedding = np.asarray(vector, dtype="float32")
+        if embedding.shape != (self.dimension,):
+            raise ValueError(f"Embedding dimension mismatch: expected {self.dimension}, got {embedding.shape}")
+        norm = np.linalg.norm(embedding)
+        return embedding if norm == 0 else embedding / norm

@@ -34,7 +34,7 @@ The default synthesizer extracts relevant sentences and appends citation markers
 
 Uploaded source files are stored in `backend/data/uploads/`. Extracted chunks, SentenceTransformer vectors, model files, and reranker scores are cached under `backend/data/cache/`. FAISS vectors and chunk metadata persist under `backend/data/index/`. These generated directories are excluded from Git.
 
-For Render deployment, the Docker image includes the model files and prebuilt demo index. The free Render filesystem remains ephemeral at runtime, so uploaded files and runtime index additions are reset when the service restarts. A paid persistent disk is required for durable hosted uploads.
+For Render deployment, the Docker image includes FastEmbed ONNX versions of BGE-small and the MS MARCO MiniLM reranker plus a prebuilt demo index. This keeps live PDF indexing below the free instance memory ceiling while local development and evaluation retain the SentenceTransformers path. The free Render filesystem remains ephemeral at runtime, so uploaded files and runtime index additions are reset when the service restarts. A paid persistent disk is required for durable hosted uploads.
 
 ## Multimodal Boundary
 

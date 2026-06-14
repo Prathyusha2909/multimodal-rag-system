@@ -15,8 +15,12 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.5-flash"
     vision_model: str = "gemini-2.5-flash"
     embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_runtime: str = "sentence-transformers"
     embedding_batch_size: int = 4
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L6-v2"
+    reranker_runtime: str = "sentence-transformers"
+    fastembed_reranker_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
+    fastembed_threads: int = 1
     chunk_size_tokens: int = 500
     chunk_overlap_tokens: int = 100
     retrieval_candidates: int = 10

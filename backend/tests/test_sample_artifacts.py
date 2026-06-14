@@ -12,8 +12,9 @@ class SampleArtifactTests(unittest.TestCase):
     def test_readme_describes_real_retrieval_stack(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
-        self.assertIn("SentenceTransformer embeddings with FAISS vector search", readme)
-        self.assertIn("SentenceTransformers, BGE-small, FAISS, BM25, CrossEncoder", readme)
+        self.assertIn("BGE-small embeddings with FAISS vector search", readme)
+        self.assertIn("SentenceTransformers locally; FastEmbed ONNX on Render", readme)
+        self.assertIn("SentenceTransformers, FastEmbed ONNX, BGE-small, FAISS, BM25, CrossEncoder", readme)
         self.assertIn(r".venv\Scripts\activate", readme)
         self.assertIsNone(re.search(r"local\s+hash(?:-vector|\s+vectors?)", readme, re.IGNORECASE))
         self.assertIsNone(re.search(r"\.venv\\S\s+cripts\\a\s+ctivate", readme))

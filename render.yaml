@@ -20,3 +20,9 @@ services:
         value: "0"
       - key: EMBEDDING_BATCH_SIZE
         value: "4"
+      - key: EMBEDDING_RUNTIME
+        value: fastembed
+      - key: RERANKER_RUNTIME
+        value: fastembed
+      - key: FASTEMBED_THREADS
+        value: "1"

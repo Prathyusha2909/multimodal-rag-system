@@ -11,7 +11,7 @@ from app.config import Settings, get_settings
 from app.schemas import DocumentSummary, QueryRequest, QueryResponse, StatsResponse
 from app.services.cache import IngestionCache
 from app.services.chunking import TokenChunker
-from app.services.embedding import EmbeddingProvider, SentenceTransformerProvider
+from app.services.embedding import EmbeddingProvider, FastEmbedProvider, SentenceTransformerProvider
 from app.services.generator import AnswerGenerator
 from app.services.ingestion import DocumentIngestor
 from app.services.registry import DocumentRegistry
@@ -33,13 +33,33 @@ def create_app(
     for directory in (settings.upload_dir, settings.cache_dir, settings.index_dir):
         directory.mkdir(parents=True, exist_ok=True)
 
-    embedder = embedder or SentenceTransformerProvider(
-        model_name=settings.embedding_model,
-        cache_dir=settings.cache_dir,
-        batch_size=settings.embedding_batch_size,
-    )
+    if embedder is None:
+        if settings.embedding_runtime == "fastembed":
+            embedder = FastEmbedProvider(
+                model_name=settings.embedding_model,
+                cache_dir=settings.cache_dir,
+                batch_size=settings.embedding_batch_size,
+                threads=settings.fastembed_threads,
+            )
+        else:
+            embedder = SentenceTransformerProvider(
+                model_name=settings.embedding_model,
+                cache_dir=settings.cache_dir,
+                batch_size=settings.embedding_batch_size,
+            )
     vector_store = FaissVectorStore(embedder, settings.index_dir)
-    reranker = reranker or CrossEncoderReranker(settings.reranker_model, settings.cache_dir)
+    if reranker is None:
+        reranker_model = (
+            settings.fastembed_reranker_model
+            if settings.reranker_runtime == "fastembed"
+            else settings.reranker_model
+        )
+        reranker = CrossEncoderReranker(
+            reranker_model,
+            settings.cache_dir,
+            runtime=settings.reranker_runtime,
+            threads=settings.fastembed_threads,
+        )
     registry = DocumentRegistry(vector_store)
     retriever = HybridRetriever(vector_store, reranker, settings.retrieval_candidates)
     generator = AnswerGenerator(settings.gemini_api_key, settings.gemini_model)
