@@ -1,6 +1,6 @@
 # Evaluation Results
 
-DeepEval 3.9.9 was used with deterministic custom metrics over the real BGE-small, FAISS, BM25, and MiniLM reranking pipeline; no external judge model was used.
+DeepEval 3.9.9 was used with deterministic custom metrics over the real SentenceTransformers, FAISS, BM25, and cross-encoder pipeline; no external judge model was used.
 
 - Test cases: 8
 - Retrieval Hit@4: 100.0%

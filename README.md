@@ -6,7 +6,7 @@
 [![React](https://img.shields.io/badge/React-UI-61DAFB)](https://react.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-b8ee45.svg)](LICENSE)
 
-A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tables, and text files. It uses BGE embeddings with a persistent FAISS index, BM25 hybrid retrieval, cross-encoder reranking, and document/page citations.
+A portfolio-scale retrieval-augmented generation prototype for PDFs, images, tables, and text files. It uses SentenceTransformer embeddings with FAISS vector search, BM25 hybrid retrieval, cross-encoder reranking, and document/page citations.
 
 ![Multimodal RAG dashboard](screenshots/home-page.png)
 
@@ -19,7 +19,7 @@ This repository demonstrates a local prototype, not a production deployment.
 - The included synthetic reports have curated chart, table, image, and scan descriptions so retrieval can also be tested without external APIs.
 - Gemini Vision is applied to uploaded image files. This version does not render every PDF page or embedded PDF figure through a vision model.
 - Gemini can be enabled for answer synthesis; the default generator is deterministic and local.
-- BGE and MiniLM are local ONNX models downloaded by FastEmbed on first use.
+- BGE-small and the MS MARCO cross-encoder are loaded through the `sentence-transformers` package on first use.
 - No private documents, internal servers, real hardware, or company data are used.
 
 ## Problem Statement
@@ -39,14 +39,14 @@ pypdf text + pdfplumber tables + Tesseract/Gemini Vision
           v
 500-token chunks + 100-token overlap + source metadata
           |
-          +---- BGE-small embeddings -> persistent FAISS
+          +---- SentenceTransformer embeddings -> FAISS vector search
           +---- BM25 lexical search
                          |
                          v
                  top 10 hybrid candidates
                          |
                          v
-                 MiniLM cross-encoder
+              SentenceTransformers CrossEncoder
                          |
                          v
           top 3-5 -> local or Gemini answer
@@ -63,9 +63,9 @@ Read the [architecture notes](docs/ARCHITECTURE.md) and [API reference](docs/API
 - Page-level PDF text extraction and separate `pdfplumber` table chunks
 - Optional Tesseract OCR and Gemini Vision analysis for image uploads
 - 500-token chunks with 100-token overlap and filename, page, chunk, and token metadata
-- `BAAI/bge-small-en-v1.5` embeddings through FastEmbed
-- Persistent cosine-similarity FAISS index plus BM25 lexical retrieval
-- Top-10 candidate retrieval and `ms-marco-MiniLM-L-6-v2` cross-encoder reranking
+- `BAAI/bge-small-en-v1.5` embeddings through `SentenceTransformer`
+- Persistent cosine-similarity FAISS vector search plus BM25 lexical retrieval
+- Top-10 candidate retrieval and `cross-encoder/ms-marco-MiniLM-L6-v2` reranking
 - On-disk caches for extraction, embeddings, reranker scores, model files, and the vector index
 - Deterministic local answer generation
 - Optional Gemini 2.5 Flash answer generation and image analysis
@@ -79,7 +79,7 @@ Read the [architecture notes](docs/ARCHITECTURE.md) and [API reference](docs/API
 | --- | --- |
 | Backend | Python, FastAPI, Pydantic |
 | Frontend | React, Vite |
-| Retrieval | BGE-small, FAISS, BM25, MiniLM cross-encoder |
+| Retrieval | SentenceTransformers, BGE-small, FAISS, BM25, CrossEncoder |
 | Parsing | pypdf, pdfplumber, optional Tesseract OCR |
 | Vision | Optional Gemini 2.5 Flash for uploaded images/charts |
 | Generation | Local extractive synthesizer, optional Gemini 2.5 Flash |
@@ -100,7 +100,7 @@ The PCIe log and issue simulate validation workflows. They are explicitly marked
 
 ## Evaluation
 
-Responses were evaluated using **DeepEval 3.9.9 on a custom eight-question test set**. The runner executes the real BGE-small, FAISS, BM25, and MiniLM reranking path, then applies deterministic custom metrics without an external judge model.
+Responses were evaluated using **DeepEval 3.9.9 on a custom eight-question test set**. The runner executes the real SentenceTransformer, FAISS, BM25, and CrossEncoder path, then applies deterministic custom metrics without an external judge model.
 
 | Metric | Result on published sample set |
 | --- | ---: |
@@ -148,7 +148,7 @@ npm run dev
 
 Set `GEMINI_API_KEY` in `.env` to use Gemini instead of the local synthesizer.
 
-The first API initialization downloads the BGE embedding and MiniLM reranker ONNX files. Later runs reuse `backend/data/cache/` and the persistent index in `backend/data/index/`.
+The first API initialization downloads the SentenceTransformers embedding and reranker models. Later runs reuse `backend/data/cache/` and the persistent FAISS index in `backend/data/index/`.
 
 ## Usage
 
@@ -204,7 +204,7 @@ npm run build
 
 ## Resume Wording
 
-> Built a multimodal document RAG system that extracts PDF text and tables, analyzes uploaded images with OCR and optional Gemini Vision, indexes 500-token chunks using BGE-small and FAISS, and reranks hybrid retrieval results with a MiniLM cross-encoder. Evaluated responses using DeepEval on a custom eight-question test set.
+> Built a multimodal document RAG system that extracts PDF text and tables, analyzes uploaded images with OCR and optional Gemini Vision, indexes 500-token chunks using SentenceTransformer embeddings and FAISS vector search, and reranks hybrid results with a CrossEncoder. Evaluated responses using DeepEval on a custom eight-question test set.
 
 ## License
 

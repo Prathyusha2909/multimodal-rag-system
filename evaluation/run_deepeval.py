@@ -11,7 +11,7 @@ from deepeval.test_case import LLMTestCase
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.services.embedding import FastEmbedProvider  # noqa: E402
+from app.services.embedding import SentenceTransformerProvider  # noqa: E402
 from app.services.generator import AnswerGenerator  # noqa: E402
 from app.services.registry import DocumentRegistry  # noqa: E402
 from app.services.reranker import CrossEncoderReranker  # noqa: E402
@@ -77,11 +77,11 @@ def main() -> None:
     cases = json.loads((ROOT / "evaluation" / "test_set.json").read_text(encoding="utf-8"))
     cache_dir = ROOT / "backend" / "data" / "cache"
     index_dir = ROOT / "backend" / "data" / "index" / "evaluation"
-    embedder = FastEmbedProvider("BAAI/bge-small-en-v1.5", cache_dir)
+    embedder = SentenceTransformerProvider("BAAI/bge-small-en-v1.5", cache_dir)
     store = FaissVectorStore(embedder, index_dir)
     registry = DocumentRegistry(store)
     registry.reset_demo()
-    reranker = CrossEncoderReranker("Xenova/ms-marco-MiniLM-L-6-v2", cache_dir)
+    reranker = CrossEncoderReranker("cross-encoder/ms-marco-MiniLM-L6-v2", cache_dir)
     retriever = HybridRetriever(store, reranker, candidate_limit=10)
     generator = AnswerGenerator()
     metric_types = [RetrievalHitAtK, CitedPageCoverage, RequiredFactCoverage]
@@ -124,7 +124,7 @@ def main() -> None:
         for name, total in totals.items()
     }
     output = {
-        "framework": "DeepEval 3.9.9 custom metrics over BGE-small, FAISS, BM25, and MiniLM reranking",
+        "framework": "DeepEval 3.9.9 custom metrics over SentenceTransformers, FAISS, BM25, and cross-encoder reranking",
         "test_cases": len(cases),
         "summary": summary,
         "results": rows,
@@ -136,7 +136,7 @@ def main() -> None:
     report = [
         "# Evaluation Results",
         "",
-        "DeepEval 3.9.9 was used with deterministic custom metrics over the real BGE-small, FAISS, BM25, and MiniLM reranking pipeline; no external judge model was used.",
+        "DeepEval 3.9.9 was used with deterministic custom metrics over the real SentenceTransformers, FAISS, BM25, and cross-encoder pipeline; no external judge model was used.",
         "",
         f"- Test cases: {len(cases)}",
         *[f"- {name}: {score:.1%}" for name, score in summary.items()],

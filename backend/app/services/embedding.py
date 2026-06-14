@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Protocol
 
 import numpy as np
+
+os.environ.setdefault("USE_TF", "0")
 
 
 class EmbeddingProvider(Protocol):
@@ -17,20 +20,21 @@ class EmbeddingProvider(Protocol):
     def embed_query(self, text: str) -> np.ndarray: ...
 
 
-class FastEmbedProvider:
-    """Lazy BGE embeddings with a content-addressed on-disk vector cache."""
+class SentenceTransformerProvider:
+    """Lazy SentenceTransformer embeddings with a content-addressed vector cache."""
 
     def __init__(
         self,
         model_name: str = "BAAI/bge-small-en-v1.5",
         cache_dir: Path | str = Path("data/cache"),
-        dimension: int | None = None,
+        dimension: int = 384,
     ) -> None:
-        self.name = model_name
-        self.dimension = dimension or self._model_dimension(model_name)
+        self.model_name = model_name
+        self.name = f"sentence-transformers:{model_name}"
+        self.dimension = dimension
         self.cache_dir = Path(cache_dir)
-        self.model_cache_dir = self.cache_dir / "models"
-        model_key = hashlib.sha256(model_name.encode("utf-8")).hexdigest()[:12]
+        self.model_cache_dir = self.cache_dir / "models" / "sentence-transformers"
+        model_key = hashlib.sha256(self.name.encode("utf-8")).hexdigest()[:12]
         self.embedding_cache_dir = self.cache_dir / "embeddings" / model_key
         self.model_cache_dir.mkdir(parents=True, exist_ok=True)
         self.embedding_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -53,11 +57,16 @@ class FastEmbedProvider:
                 vectors[index] = cached
 
         if missing_texts:
-            generated = list(self._get_model().embed(missing_texts))
+            generated = self._get_model().encode(
+                missing_texts,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )
             for index, text, vector in zip(missing_indices, missing_texts, generated):
-                normalized = self._normalize(vector)
-                vectors[index] = normalized
-                self._save_cached(text, "document", normalized)
+                embedding = np.asarray(vector, dtype="float32")
+                vectors[index] = embedding
+                self._save_cached(text, "document", embedding)
 
         return np.vstack(vectors).astype("float32")
 
@@ -65,21 +74,37 @@ class FastEmbedProvider:
         cached = self._load_cached(text, "query")
         if cached is not None:
             return cached
-        vector = next(iter(self._get_model().query_embed(text)))
-        normalized = self._normalize(vector)
-        self._save_cached(text, "query", normalized)
-        return normalized
+        vector = self._get_model().encode(
+            text,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        )
+        embedding = np.asarray(vector, dtype="float32")
+        self._save_cached(text, "query", embedding)
+        return embedding
 
     def _get_model(self):
         if self._model is None:
-            from fastembed import TextEmbedding
+            from sentence_transformers import SentenceTransformer
 
-            self._model = TextEmbedding(
-                model_name=self.name,
-                cache_dir=str(self.model_cache_dir),
-                lazy_load=True,
+            self._model = SentenceTransformer(
+                self.model_name,
+                cache_folder=str(self.model_cache_dir),
+                local_files_only=self._has_cached_model(),
             )
+            actual_dimension = self._model.get_sentence_embedding_dimension()
+            if actual_dimension != self.dimension:
+                raise ValueError(
+                    f"Embedding dimension mismatch: configured {self.dimension}, model returns "
+                    f"{actual_dimension}"
+                )
         return self._model
+
+    def _has_cached_model(self) -> bool:
+        model_dir = self.model_cache_dir / f"models--{self.model_name.replace('/', '--')}"
+        snapshots = model_dir / "snapshots"
+        return snapshots.exists() and any(snapshots.iterdir())
 
     def _cache_path(self, text: str, kind: str) -> Path:
         digest = hashlib.sha256(f"{kind}\0{text}".encode("utf-8")).hexdigest()
@@ -94,18 +119,3 @@ class FastEmbedProvider:
 
     def _save_cached(self, text: str, kind: str, vector: np.ndarray) -> None:
         np.save(self._cache_path(text, kind), vector, allow_pickle=False)
-
-    @staticmethod
-    def _normalize(vector) -> np.ndarray:
-        array = np.asarray(vector, dtype="float32")
-        norm = float(np.linalg.norm(array)) or 1.0
-        return array / norm
-
-    @staticmethod
-    def _model_dimension(model_name: str) -> int:
-        from fastembed import TextEmbedding
-
-        for model in TextEmbedding.list_supported_models():
-            if model["model"] == model_name:
-                return int(model["dim"])
-        raise ValueError(f"Unsupported FastEmbed model: {model_name}")

@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from pathlib import Path
 from typing import Protocol
 
 from app.domain import SearchHit
+
+os.environ.setdefault("USE_TF", "0")
 
 
 class Reranker(Protocol):
@@ -38,8 +41,10 @@ class CrossEncoderReranker:
         self.name = model_name
         self.model_name = model_name
         self.cache_dir = Path(cache_dir)
-        self.model_cache_dir = self.cache_dir / "models"
-        model_key = hashlib.sha256(model_name.encode("utf-8")).hexdigest()[:12]
+        self.model_cache_dir = self.cache_dir / "models" / "sentence-transformers"
+        model_key = hashlib.sha256(
+            f"sentence-transformers:{model_name}".encode("utf-8")
+        ).hexdigest()[:12]
         self.score_cache_path = self.cache_dir / "reranker" / f"{model_key}.json"
         self.score_cache_path.parent.mkdir(parents=True, exist_ok=True)
         self.model_cache_dir.mkdir(parents=True, exist_ok=True)
@@ -75,7 +80,12 @@ class CrossEncoderReranker:
                 missing_documents.append(document)
                 missing_indices.append(index)
         if missing_documents:
-            generated = list(self._get_model().rerank(query, missing_documents))
+            pairs = [(query, document) for document in missing_documents]
+            generated = self._get_model().predict(
+                pairs,
+                batch_size=16,
+                show_progress_bar=False,
+            )
             for index, document, score in zip(missing_indices, missing_documents, generated):
                 value = float(score)
                 values[index] = value
@@ -85,14 +95,19 @@ class CrossEncoderReranker:
 
     def _get_model(self):
         if self._model is None:
-            from fastembed.rerank.cross_encoder import TextCrossEncoder
+            from sentence_transformers import CrossEncoder
 
-            self._model = TextCrossEncoder(
-                model_name=self.model_name,
+            self._model = CrossEncoder(
+                self.model_name,
                 cache_dir=str(self.model_cache_dir),
-                lazy_load=True,
+                local_files_only=self._has_cached_model(),
             )
         return self._model
+
+    def _has_cached_model(self) -> bool:
+        model_dir = self.model_cache_dir / f"models--{self.model_name.replace('/', '--')}"
+        snapshots = model_dir / "snapshots"
+        return snapshots.exists() and any(snapshots.iterdir())
 
     def _load_scores(self) -> dict[str, float]:
         if not self.score_cache_path.exists():

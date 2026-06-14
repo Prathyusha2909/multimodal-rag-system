@@ -50,8 +50,8 @@ def save_architecture():
     stages = [
         ("01", "Sources", "PDFs, scans, images, tables, charts"),
         ("02", "Extraction", "pypdf text, pdfplumber tables, OCR and vision"),
-        ("03", "Indexing", "500-token chunks, BGE embeddings, persistent FAISS"),
-        ("04", "Retrieval", "Top-10 BGE + BM25, MiniLM reranking"),
+        ("03", "Indexing", "500-token chunks, SentenceTransformer, FAISS"),
+        ("04", "Retrieval", "Top-10 vector + BM25, CrossEncoder reranking"),
         ("05", "Response", "Local synthesis or optional Gemini, with citations"),
     ]
     x_positions = [75, 420, 765, 1110, 1455]
@@ -77,9 +77,9 @@ def save_workflow():
     text(draw, (90, 105), "Hybrid retrieval keeps exact values and semantic context", 40, TEXT, True)
     nodes = [
         (150, 270, "User question", "Compare Figure 3 and Table 2"),
-        (590, 210, "Semantic path", "BGE-small embeddings search the FAISS index"),
+        (590, 210, "Semantic path", "SentenceTransformer embeddings search FAISS"),
         (590, 530, "Lexical path", "BM25 preserves exact labels"),
-        (1030, 370, "Fusion + reranking", "Top 10 candidates scored by MiniLM"),
+        (1030, 370, "Fusion + reranking", "Top 10 candidates scored by CrossEncoder"),
         (1450, 370, "Grounded answer", "Citations link back to page evidence"),
     ]
     for x, y, title, body in nodes:
@@ -108,8 +108,8 @@ def save_system_design():
         (830, 390, 1090, 520, "Image analysis", "Tesseract + optional Gemini Vision"),
         (1210, 290, 1480, 420, "Persistent index", "BGE vectors + FAISS + metadata"),
         (90, 700, 350, 830, "User question", "Natural-language query"),
-        (470, 700, 730, 830, "Hybrid retrieval", "BGE semantic search + BM25"),
-        (850, 700, 1110, 830, "Reranker", "MiniLM cross-encoder"),
+        (470, 700, 730, 830, "Hybrid retrieval", "SentenceTransformer + FAISS + BM25"),
+        (850, 700, 1110, 830, "Reranker", "SentenceTransformers CrossEncoder"),
         (1230, 700, 1530, 830, "Cited response", "Local synthesis or optional Gemini"),
     ]
     for x1, y1, x2, y2, title, body in boxes:

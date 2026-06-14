@@ -11,7 +11,7 @@ from app.config import Settings, get_settings
 from app.schemas import DocumentSummary, QueryRequest, QueryResponse, StatsResponse
 from app.services.cache import IngestionCache
 from app.services.chunking import TokenChunker
-from app.services.embedding import EmbeddingProvider, FastEmbedProvider
+from app.services.embedding import EmbeddingProvider, SentenceTransformerProvider
 from app.services.generator import AnswerGenerator
 from app.services.ingestion import DocumentIngestor
 from app.services.registry import DocumentRegistry
@@ -33,7 +33,7 @@ def create_app(
     for directory in (settings.upload_dir, settings.cache_dir, settings.index_dir):
         directory.mkdir(parents=True, exist_ok=True)
 
-    embedder = embedder or FastEmbedProvider(
+    embedder = embedder or SentenceTransformerProvider(
         model_name=settings.embedding_model,
         cache_dir=settings.cache_dir,
     )

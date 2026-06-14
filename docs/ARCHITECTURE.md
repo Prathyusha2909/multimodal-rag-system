@@ -21,10 +21,10 @@ Text is split into 500-token windows with 100-token overlap. Every chunk stores 
 
 The prototype uses two local retrieval signals:
 
-1. `BAAI/bge-small-en-v1.5` produces normalized 384-dimensional embeddings stored in a persistent FAISS inner-product index.
+1. `SentenceTransformer("BAAI/bge-small-en-v1.5")` produces normalized 384-dimensional embeddings stored in a persistent FAISS inner-product index.
 2. A BM25 implementation preserves exact labels, values, and technical terms.
 
-The retriever forms a pool of ten semantic and lexical candidates. `Xenova/ms-marco-MiniLM-L-6-v2` scores each query/chunk pair and reranks the pool before the top three to five chunks are sent to generation. A documented heuristic fallback is used only when the local reranker cannot load.
+The retriever forms a pool of ten semantic and lexical candidates. `CrossEncoder("cross-encoder/ms-marco-MiniLM-L6-v2")` scores each query/chunk pair and reranks the pool before the top three to five chunks are sent to generation. A documented heuristic fallback is used only when the local reranker cannot load.
 
 ## Generation
 
@@ -32,7 +32,7 @@ The default synthesizer extracts relevant sentences and appends citation markers
 
 ## Storage And Caching
 
-Uploaded source files are stored in `backend/data/uploads/`. Extracted chunks, BGE vectors, FastEmbed model files, and reranker scores are cached under `backend/data/cache/`. FAISS vectors and chunk metadata persist under `backend/data/index/`. These generated directories are excluded from Git.
+Uploaded source files are stored in `backend/data/uploads/`. Extracted chunks, SentenceTransformer vectors, model files, and reranker scores are cached under `backend/data/cache/`. FAISS vectors and chunk metadata persist under `backend/data/index/`. These generated directories are excluded from Git.
 
 ## Multimodal Boundary
 
@@ -40,7 +40,7 @@ Table extraction and uploaded-image understanding are implemented. Gemini Vision
 
 ## Evaluation
 
-`evaluation/run_deepeval.py` executes the real embedding, FAISS, BM25, and cross-encoder path, creates DeepEval `LLMTestCase` objects, and measures:
+`evaluation/run_deepeval.py` executes the real SentenceTransformer, FAISS, BM25, and CrossEncoder path, creates DeepEval `LLMTestCase` objects, and measures:
 
 - Retrieval Hit@4
 - expected cited-page coverage
