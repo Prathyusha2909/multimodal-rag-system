@@ -8,6 +8,8 @@ services:
       - "8000:8000"
     volumes:
       - uploads:/app/data/uploads
+      - model-cache:/app/data/cache
+      - vector-index:/app/data/index
   web:
     build:
       context: ./frontend
@@ -20,3 +22,5 @@ services:
 
 volumes:
   uploads:
+  model-cache:
+  vector-index:

@@ -1,16 +1,38 @@
+import tempfile
 import unittest
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
+from app.services.chunking import RegexTokenEncoding, TokenChunker
+from tests.fakes import FakeEmbeddingProvider, fake_reranker
 
 
 class ApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        settings = Settings(frontend_origin="http://testserver")
-        cls.client = TestClient(create_app(settings))
+        cls.temp_dir = tempfile.TemporaryDirectory()
+        root = Path(cls.temp_dir.name)
+        settings = Settings(
+            frontend_origin="http://testserver",
+            upload_dir=root / "uploads",
+            cache_dir=root / "cache",
+            index_dir=root / "index",
+        )
+        cls.client = TestClient(
+            create_app(
+                settings,
+                FakeEmbeddingProvider(),
+                fake_reranker(),
+                TokenChunker(500, 100, RegexTokenEncoding()),
+            )
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp_dir.cleanup()
 
     def test_health_and_stats(self):
         health = self.client.get("/health")
@@ -19,7 +41,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(health.status_code, 200)
         self.assertEqual(health.json()["status"], "healthy")
         self.assertEqual(stats.status_code, 200)
-        self.assertGreaterEqual(stats.json()["documents"], 2)
+        self.assertEqual(stats.json()["index_backend"], "faiss:deterministic-test-embedding")
 
     def test_query_returns_ranked_citations(self):
         response = self.client.post(

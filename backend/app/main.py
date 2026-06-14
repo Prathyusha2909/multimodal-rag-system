@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import time
 from pathlib import Path
 
@@ -8,28 +9,60 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings, get_settings
 from app.schemas import DocumentSummary, QueryRequest, QueryResponse, StatsResponse
+from app.services.cache import IngestionCache
+from app.services.chunking import TokenChunker
+from app.services.embedding import EmbeddingProvider, FastEmbedProvider
 from app.services.generator import AnswerGenerator
 from app.services.ingestion import DocumentIngestor
 from app.services.registry import DocumentRegistry
+from app.services.reranker import CrossEncoderReranker, Reranker
 from app.services.retriever import HybridRetriever
-from app.services.vector_store import MemoryVectorStore
+from app.services.vector_store import FaissVectorStore
+from app.services.vision import GeminiVisionAnalyzer
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    embedder: EmbeddingProvider | None = None,
+    reranker: Reranker | None = None,
+    chunker: TokenChunker | None = None,
+) -> FastAPI:
     settings = settings or get_settings()
-    vector_store = MemoryVectorStore()
+    for directory in (settings.upload_dir, settings.cache_dir, settings.index_dir):
+        directory.mkdir(parents=True, exist_ok=True)
+
+    embedder = embedder or FastEmbedProvider(
+        model_name=settings.embedding_model,
+        cache_dir=settings.cache_dir,
+    )
+    vector_store = FaissVectorStore(embedder, settings.index_dir)
+    reranker = reranker or CrossEncoderReranker(settings.reranker_model, settings.cache_dir)
     registry = DocumentRegistry(vector_store)
-    registry.reset_demo()
-    retriever = HybridRetriever(vector_store)
+    retriever = HybridRetriever(vector_store, reranker, settings.retrieval_candidates)
     generator = AnswerGenerator(settings.gemini_api_key, settings.gemini_model)
-    ingestor = DocumentIngestor()
+    ingestor = DocumentIngestor(
+        chunker or TokenChunker(settings.chunk_size_tokens, settings.chunk_overlap_tokens),
+        IngestionCache(settings.cache_dir),
+        GeminiVisionAnalyzer(settings.gemini_api_key, settings.vision_model),
+    )
+    initialization_lock = threading.Lock()
+    initialized = False
+
+    def ensure_initialized() -> None:
+        nonlocal initialized
+        if initialized:
+            return
+        with initialization_lock:
+            if not initialized:
+                registry.initialize_demo()
+                initialized = True
 
     app = FastAPI(
         title=settings.app_name,
         description="Multimodal document intelligence with hybrid retrieval and citations.",
-        version="1.0.0",
+        version="2.0.0",
         docs_url="/docs",
         redoc_url="/redoc",
     )
@@ -47,14 +80,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/api/v1/stats", response_model=StatsResponse)
     def stats() -> dict:
-        return registry.stats("local-hash-index")
+        ensure_initialized()
+        return registry.stats(vector_store.name)
 
     @app.get("/api/v1/documents", response_model=list[DocumentSummary])
     def documents() -> list[dict]:
+        ensure_initialized()
         return registry.documents()
 
     @app.post("/api/v1/documents/upload", response_model=DocumentSummary, status_code=201)
     async def upload_document(file: UploadFile = File(...)) -> dict:
+        ensure_initialized()
         filename = Path(file.filename or "upload").name
         content = await file.read(MAX_UPLOAD_BYTES + 1)
         if len(content) > MAX_UPLOAD_BYTES:
@@ -66,13 +102,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not chunks:
             raise HTTPException(status_code=422, detail="No indexable content was found")
 
-        target = settings.upload_dir / filename
-        target.write_bytes(content)
+        (settings.upload_dir / filename).write_bytes(content)
         registry.add(chunks)
         return next(doc for doc in registry.documents() if doc["id"] == chunks[0].document_id)
 
     @app.post("/api/v1/query", response_model=QueryResponse)
     def query(request: QueryRequest) -> dict:
+        ensure_initialized()
         retrieval_started = time.perf_counter()
         filters = set(request.document_ids) if request.document_ids else None
         hits = retriever.search(request.question, request.top_k, filters)
@@ -81,20 +117,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         generation_started = time.perf_counter()
         answer, model = generator.generate(request.question, hits)
         generation_ms = int((time.perf_counter() - generation_started) * 1000)
-        citations = [
-            {
-                "index": index,
-                "document_name": hit.chunk.document_name,
-                "page": hit.chunk.page,
-                "modality": hit.chunk.modality,
-                "excerpt": hit.chunk.content,
-                "score": round(hit.score, 4),
-            }
-            for index, hit in enumerate(hits, start=1)
-        ]
         return {
             "answer": answer,
-            "citations": citations,
+            "citations": [
+                {
+                    "index": index,
+                    "document_name": hit.chunk.document_name,
+                    "page": hit.chunk.page,
+                    "modality": hit.chunk.modality,
+                    "excerpt": hit.chunk.content,
+                    "score": round(hit.score, 4),
+                }
+                for index, hit in enumerate(hits, start=1)
+            ],
             "retrieval_ms": retrieval_ms,
             "generation_ms": generation_ms,
             "model": model,
@@ -102,8 +137,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.post("/api/v1/demo/reset")
     def reset_demo() -> dict[str, int | str]:
+        nonlocal initialized
         registry.reset_demo()
+        initialized = True
         return {"status": "reset", "chunks": len(vector_store.chunks)}
 
     return app
+
+
 app = create_app()

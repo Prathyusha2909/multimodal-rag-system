@@ -9,36 +9,41 @@ This is a local portfolio prototype. The implemented path is intentionally small
 `DocumentIngestor` accepts PDF, common image formats, text, Markdown, and CSV.
 
 - `pypdf` extracts available text from each PDF page.
+- `pdfplumber` extracts detected tables into separate table chunks.
 - Tesseract extracts text from image uploads when its local binary is installed.
+- Gemini Vision optionally produces factual chart, table, or image descriptions for uploaded images.
 - Pages without extractable PDF text are marked as scans rather than silently treated as understood.
 - The bundled demo corpus contains curated modality labels and visual descriptions corresponding to the synthetic PDFs in `samples/documents/`.
 
-Every chunk stores document ID, filename, page, modality, content, and optional figure/table metadata.
+Text is split into 500-token windows with 100-token overlap. Every chunk stores document ID, filename, page, chunk ID, token offsets, modality, content, and optional figure/table metadata.
 
 ## Retrieval
 
 The prototype uses two local retrieval signals:
 
-1. Deterministic hash vectors provide lightweight semantic token matching.
+1. `BAAI/bge-small-en-v1.5` produces normalized 384-dimensional embeddings stored in a persistent FAISS inner-product index.
 2. A BM25 implementation preserves exact labels, values, and technical terms.
 
-Candidates are fused and reranked using semantic score, lexical score, token overlap, and explicit modality terms such as `chart`, `figure`, and `table`.
+The retriever forms a pool of ten semantic and lexical candidates. `Xenova/ms-marco-MiniLM-L-6-v2` scores each query/chunk pair and reranks the pool before the top three to five chunks are sent to generation. A documented heuristic fallback is used only when the local reranker cannot load.
 
 ## Generation
 
 The default synthesizer extracts relevant sentences and appends citation markers. When `GEMINI_API_KEY` is configured, the same retrieved text context can be sent to Gemini. Citations are constructed from retrieval metadata rather than invented by the generator.
 
-## Storage
+## Storage And Caching
 
-The current demo index is in memory and resets when the API restarts. Uploaded source files are stored in `backend/data/uploads/`. Persistence and background workers are intentionally outside the current scope.
+Uploaded source files are stored in `backend/data/uploads/`. Extracted chunks, BGE vectors, FastEmbed model files, and reranker scores are cached under `backend/data/cache/`. FAISS vectors and chunk metadata persist under `backend/data/index/`. These generated directories are excluded from Git.
+
+## Multimodal Boundary
+
+Table extraction and uploaded-image understanding are implemented. Gemini Vision can interpret an uploaded chart image, while OCR preserves visible text. This version does not render full PDF pages through Gemini Vision, so chart understanding inside arbitrary uploaded PDFs depends on extractable text unless the chart is uploaded separately as an image.
 
 ## Evaluation
 
-`evaluation/run_deepeval.py` creates DeepEval `LLMTestCase` objects and measures:
+`evaluation/run_deepeval.py` executes the real embedding, FAISS, BM25, and cross-encoder path, creates DeepEval `LLMTestCase` objects, and measures:
 
 - Retrieval Hit@4
 - expected cited-page coverage
 - required-fact coverage
 
 The metrics are deterministic and operate on the published synthetic test set. They do not estimate broad answer quality or hallucination probability.
-

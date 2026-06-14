@@ -6,7 +6,7 @@ from app.domain import SearchHit
 
 
 class AnswerGenerator:
-    def __init__(self, api_key: str | None = None, model: str = "gemini-2.0-flash") -> None:
+    def __init__(self, api_key: str | None = None, model: str = "gemini-2.5-flash") -> None:
         self.api_key = api_key
         self.model = model
 
@@ -57,4 +57,3 @@ class AnswerGenerator:
             if selected:
                 sentences.append(f"{selected} [{index}]")
         return " ".join(sentences)
-
