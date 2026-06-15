@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock
 
 from app.domain import DocumentChunk
 from app.services.registry import DocumentRegistry
@@ -60,6 +61,9 @@ class HybridRetrieverTests(unittest.TestCase):
         self.assertTrue(all(hit.rerank_score for hit in hits))
 
     def test_summary_query_prefers_diverse_substantive_sections(self):
+        self.retriever.reranker.rerank = Mock(
+            side_effect=AssertionError("summary retrieval should not load the cross-encoder")
+        )
         self.registry.add(
             [
                 DocumentChunk(

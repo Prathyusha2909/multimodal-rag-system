@@ -135,21 +135,23 @@ class HybridRetriever:
             ),
             reverse=True,
         )[:candidate_limit]
-        hits = [
-            SearchHit(
+        reranked = []
+        for chunk_id in ranked_ids:
+            semantic_score = semantic_scores.get(chunk_id, 0.0)
+            summary_score = summary_scores.get(chunk_id, 0.0)
+            hit = SearchHit(
                 chunk=chunks_by_id[chunk_id],
-                semantic_score=semantic_scores.get(chunk_id, 0.0),
-                lexical_score=summary_scores.get(chunk_id, 0.0),
+                semantic_score=semantic_score,
+                lexical_score=summary_score,
             )
-            for chunk_id in ranked_ids
-        ]
-        reranked = self.reranker.rerank(expanded_query, hits)
-        for hit in reranked:
+            # Broad summaries use lightweight section-aware scoring. Loading the
+            # cross-encoder here adds memory pressure without a focused query.
             hit.rerank_score = (
-                0.65 * hit.rerank_score
-                + 0.35 * summary_scores.get(hit.chunk.id, 0.0)
+                0.6 * semantic_score
+                + 0.4 * summary_score
                 - self._boilerplate_penalty(hit.chunk.content)
             )
+            reranked.append(hit)
         return self._select_page_diverse(
             sorted(reranked, key=lambda hit: hit.rerank_score, reverse=True),
             limit,
