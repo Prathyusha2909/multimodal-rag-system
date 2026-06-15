@@ -191,6 +191,46 @@ class GenerationTests(unittest.TestCase):
         self.assertIn("Python", answer)
         self.assertNotIn("equal opportunity", answer.lower())
 
+    def test_job_description_summary_extracts_role_skills_and_eligibility(self):
+        chunks = [
+            DocumentChunk(
+                id="role",
+                document_id="job",
+                document_name="DAI_Associate data scientist_2026_YG.pdf",
+                page=1,
+                modality="text",
+                content=(
+                    "We are an equal opportunity employer. Role: Associate data scientist "
+                    "Candidates should have responsibilities: • Assist in developing and optimizing "
+                    "Generative AI models • Collaborate with teams to integrate AI solutions "
+                    "• Research emerging AI trends • Establishing data preparation best practices"
+                ),
+            ),
+            DocumentChunk(
+                id="skills",
+                document_id="job",
+                document_name="DAI_Associate data scientist_2026_YG.pdf",
+                page=2,
+                modality="text",
+                content=(
+                    "Required Skillset • Generative AI and Machine Learning • NLP, Python, Java, "
+                    "React, Node.js, MySQL, MongoDB • Communication and teamwork. Eligibility "
+                    "Criteria: • 2026 passed outs with no backlogs • Bachelor's degree in Computer "
+                    "Science, AI, or Data Science • Minimum of 70% across 10th, 12th and Graduation"
+                ),
+            ),
+        ]
+        hits = [SearchHit(chunk, 0.8, 0.8) for chunk in chunks]
+
+        answer, _ = AnswerGenerator().generate("summarize", hits)
+
+        self.assertIn("Associate Data Scientist opportunity", answer)
+        self.assertIn("Generative AI", answer)
+        self.assertIn("Python", answer)
+        self.assertIn("2026 graduates", answer)
+        self.assertIn("at least 70%", answer)
+        self.assertNotIn("equal opportunity", answer.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

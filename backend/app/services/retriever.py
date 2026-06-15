@@ -177,13 +177,19 @@ class HybridRetriever:
         ) else 0.0
         fact_bonus = min(len(re.findall(r"\b\d+(?:\.\d+)?%?\b", text)), 4) * 0.15
         length_bonus = 0.5 if 20 <= len(tokenize(chunk.content)) <= 220 else 0.0
-        return salience + heading_bonus + fact_bonus + length_bonus
+        modality_bonus = 0.4 if chunk.modality == "text" else -0.2 if chunk.modality == "table" else 0.0
+        return salience + heading_bonus + fact_bonus + length_bonus + modality_bonus
 
     @classmethod
     def _boilerplate_penalty(cls, text: str) -> float:
         lower = text.lower()
         matches = sum(phrase in lower for phrase in BOILERPLATE_PHRASES)
         if matches >= 2:
+            if len(tokenize(text)) > 180 and re.search(
+                r"\b(role|responsibilities|required skillset|eligibility criteria)\b",
+                lower,
+            ):
+                return 0.2
             return 1.5
         if matches == 1 and len(tokenize(text)) < 180:
             return 0.9

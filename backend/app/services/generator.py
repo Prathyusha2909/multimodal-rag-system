@@ -109,6 +109,10 @@ class AnswerGenerator:
 
     @classmethod
     def _document_summary(cls, hits: list[SearchHit]) -> str:
+        job_summary = cls._job_description_summary(hits)
+        if job_summary:
+            return job_summary
+
         candidates: list[tuple[float, int, int, str]] = []
         for citation, hit in enumerate(hits, start=1):
             text = cls._clean_content(hit)
@@ -147,6 +151,177 @@ class AnswerGenerator:
             for citation, _, sentence in selected
         )
         return f"Summary: {points}"
+
+    @classmethod
+    def _job_description_summary(cls, hits: list[SearchHit]) -> str | None:
+        indexed_text = [
+            (citation, hit, cls._clean_content(hit))
+            for citation, hit in enumerate(hits, start=1)
+        ]
+        combined = " ".join(text for _, _, text in indexed_text)
+        if not re.search(
+            r"\b(required skillset|required skills?|eligibility criteria|responsibilities)\b",
+            combined,
+            re.I,
+        ):
+            return None
+
+        parts: list[str] = []
+        role_citation, role = cls._job_role(indexed_text)
+        responsibility_citation, responsibilities = cls._job_responsibilities(indexed_text)
+        skills_citation, skills = cls._job_skills(indexed_text)
+        eligibility_citation, eligibility = cls._job_eligibility(indexed_text)
+
+        if role:
+            article = "an" if role[:1].lower() in "aeiou" else "a"
+            parts.append(f"This is {article} {role} opportunity [{role_citation}].")
+        if responsibilities:
+            formatted = cls._join_list(responsibilities)
+            parts.append(f"Key responsibilities include {formatted} [{responsibility_citation}].")
+        if skills:
+            parts.append(f"Required skills include {cls._join_list(skills)} [{skills_citation}].")
+        if eligibility:
+            parts.append(f"Eligibility targets {eligibility} [{eligibility_citation}].")
+
+        return f"Summary: {' '.join(parts)}" if parts else None
+
+    @classmethod
+    def _job_role(cls, indexed_text: list[tuple[int, SearchHit, str]]) -> tuple[int, str]:
+        for citation, hit, text in indexed_text:
+            match = re.search(
+                r"\bRole\s*:\s*(.+?)(?=\s+Candidates?\b|\s+Responsibilities?\b|\s*[•])",
+                text,
+                re.I,
+            )
+            if match:
+                return citation, match.group(1).strip(" .-").title()
+            natural_title = re.search(
+                r"\bThe\s+(.+?)\s+(?=analyzes|develops|builds|supports|designs|works)\b",
+                text,
+                re.I,
+            )
+            if natural_title:
+                return citation, natural_title.group(1).strip(" .-").title()
+
+        citation, hit, _ = min(indexed_text, key=lambda item: item[1].chunk.page)
+        stem = Path(hit.chunk.document_name).stem.replace("_", " ")
+        stem = re.sub(r"\b(?:DAI|JD|YG|19\d{2}|20\d{2})\b", "", stem, flags=re.I)
+        stem = re.sub(r"\s+", " ", stem).strip(" -")
+        return citation, stem.title() if stem else ""
+
+    @classmethod
+    def _job_responsibilities(
+        cls,
+        indexed_text: list[tuple[int, SearchHit, str]],
+    ) -> tuple[int, list[str]]:
+        best: tuple[int, list[str]] = (1, [])
+        for citation, _, text in indexed_text:
+            bullets = cls._bullet_items(text)
+            actions = [cls._action_phrase(item) for item in bullets if cls._is_responsibility(item)]
+            actions = [action for action in actions if action]
+            if len(actions) > len(best[1]):
+                best = citation, actions[:4]
+        return best
+
+    @staticmethod
+    def _job_skills(indexed_text: list[tuple[int, SearchHit, str]]) -> tuple[int, list[str]]:
+        skill_patterns = (
+            (r"\bGenerative AI\b", "Generative AI"),
+            (r"\bMachine Learning\b", "machine learning"),
+            (r"\bNLP\b", "NLP"),
+            (r"\bPython\b", "Python"),
+            (r"\bJava\b", "Java"),
+            (r"\bJavaScript\b", "JavaScript"),
+            (r"\bReact\b", "React"),
+            (r"\bNode\.?\s*js\b", "Node.js"),
+            (r"\bMySQL\b", "MySQL"),
+            (r"\bMongoDB\b", "MongoDB"),
+            (r"\bcommunication\b", "communication"),
+            (r"\bteamwork\b", "teamwork"),
+        )
+        best: tuple[int, list[str]] = (1, [])
+        for citation, _, text in indexed_text:
+            if not re.search(r"\b(required skillset|required skills?|knowledge of)\b", text, re.I):
+                continue
+            found = [label for pattern, label in skill_patterns if re.search(pattern, text, re.I)]
+            if len(found) > len(best[1]):
+                best = citation, found[:12]
+        return best
+
+    @classmethod
+    def _job_eligibility(
+        cls,
+        indexed_text: list[tuple[int, SearchHit, str]],
+    ) -> tuple[int, str]:
+        for citation, _, text in indexed_text:
+            if not re.search(r"\bEligibility Criteria\b", text, re.I):
+                continue
+            details = []
+            year = re.search(r"\b(20\d{2})\b", text)
+            if year:
+                graduate_group = f"{year.group(1)} graduates"
+                if re.search(r"\bno backlogs\b", text, re.I):
+                    graduate_group += " with no backlogs"
+                details.append(graduate_group)
+            elif re.search(r"\bno backlogs\b", text, re.I):
+                details.append("with no backlogs")
+            if re.search(r"\bBachelor\s*['’]?\s*s degree\b", text, re.I):
+                details.append("a relevant bachelor's degree")
+            percentage = re.search(r"\bminimum of\s+(\d+(?:\.\d+)?%)", text, re.I)
+            if percentage:
+                details.append(
+                    f"at least {percentage.group(1)} across 10th, 12th, and graduation"
+                )
+            return citation, cls._join_list(details)
+        return 1, ""
+
+    @staticmethod
+    def _bullet_items(text: str) -> list[str]:
+        normalized = text.replace("â¢", "•").replace("â", "'").replace("â", "-")
+        return [
+            item.strip(" .-|\n")
+            for item in re.split(r"\s*•\s*|\s+-\s+-\s+-\s+", normalized)
+            if len(item.strip()) > 8
+        ]
+
+    @staticmethod
+    def _is_responsibility(item: str) -> bool:
+        return bool(
+            re.match(
+                r"(?:Assist|Collaborate|Research|Establish(?:ing)?|Design(?:ing)?|Interpret(?:ing)?|Review(?:ing)?|Identify(?:ing)?|Develop(?:ing)?|Build|Write|Test)\b",
+                item,
+                re.I,
+            )
+        )
+
+    @staticmethod
+    def _action_phrase(item: str) -> str:
+        item = re.sub(r"\s+", " ", item).strip(" .")
+        item = re.sub(r"\s+-\s+", "-", item)
+        replacements = (
+            (r"^Assist\s+in\s+", "assisting in "),
+            (r"^Collaborate\b", "collaborating"),
+            (r"^Research\b", "researching"),
+            (r"^Develop\b", "developing"),
+            (r"^Build\b", "building"),
+            (r"^Write\b", "writing"),
+            (r"^Test\b", "testing"),
+        )
+        for pattern, replacement in replacements:
+            updated = re.sub(pattern, replacement, item, flags=re.I)
+            if updated != item:
+                return updated[0].lower() + updated[1:]
+        return item[0].lower() + item[1:] if item else ""
+
+    @staticmethod
+    def _join_list(items: list[str]) -> str:
+        if not items:
+            return ""
+        if len(items) == 1:
+            return items[0]
+        if len(items) == 2:
+            return f"{items[0]} and {items[1]}"
+        return f"{', '.join(items[:-1])}, and {items[-1]}"
 
     @classmethod
     def _trend_answer(cls, question: str, hit: SearchHit) -> str | None:
@@ -254,6 +429,7 @@ class AnswerGenerator:
     @staticmethod
     def _clean_content(hit: SearchHit) -> str:
         text = hit.chunk.content.replace("\n", " ")
+        text = text.replace("â¢", "•").replace("â", "'").replace("â", "-")
         document_name = Path(hit.chunk.document_name).stem.replace("_", " ")
         text = re.sub(r"\bSYNTHETIC SAMPLE REPORT\b", "", text, flags=re.I)
         text = re.sub(rf"^\s*{re.escape(document_name)}\b", "", text, flags=re.I)
