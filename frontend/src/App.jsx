@@ -34,6 +34,7 @@ function App() {
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState("");
   const [apiOnline, setApiOnline] = useState(false);
+  const [activeDocumentId, setActiveDocumentId] = useState(null);
   const fileInput = useRef(null);
 
   useEffect(() => {
@@ -53,6 +54,7 @@ function App() {
     () => Object.values(stats.modalities || {}).reduce((sum, count) => sum + count, 0),
     [stats],
   );
+  const activeDocument = documents.find((document) => document.id === activeDocumentId);
 
   const ask = async (nextQuestion = question) => {
     const cleaned = nextQuestion.trim();
@@ -61,7 +63,7 @@ function App() {
     setLoading(true);
     setNotice("");
     try {
-      setResult(await api.query(cleaned));
+      setResult(await api.query(cleaned, activeDocumentId ? [activeDocumentId] : null));
       setApiOnline(true);
     } catch (error) {
       setApiOnline(false);
@@ -81,8 +83,9 @@ function App() {
       const document = await api.upload(file);
       setApiOnline(true);
       setDocuments((current) => [document, ...current.filter((item) => item.id !== document.id)]);
+      setActiveDocumentId(document.id);
       setStats(await api.getStats());
-      setNotice(`${file.name} indexed successfully.`);
+      setNotice(`${file.name} indexed successfully. Questions are now focused on this document.`);
     } catch (error) {
       setApiOnline(false);
       setNotice(error.message);
@@ -142,7 +145,11 @@ function App() {
             <div className="panel-heading"><span className="step">01</span><div><p>QUERY WORKSPACE</p><h2>What do you want to understand?</h2></div></div>
             <div className={`question-box ${loading ? "loading" : ""}`}>
               <textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); ask(); } }} aria-label="Ask a question about your documents" />
-              <div className="question-footer"><span><Icon name="spark" size={16} />Grounded in {stats.documents} documents</span><button onClick={() => ask()} disabled={loading} aria-label="Send query"><Icon name="send" size={17} /></button></div>
+              <div className="question-footer"><span><Icon name="spark" size={16} />Grounded in {activeDocument ? activeDocument.name : `${stats.documents} documents`}</span><button onClick={() => ask()} disabled={loading} aria-label="Send query"><Icon name="send" size={17} /></button></div>
+            </div>
+            <div className="scope-row">
+              <span>Search scope: <strong>{activeDocument ? activeDocument.name : "All documents"}</strong></span>
+              {activeDocument && <button onClick={() => setActiveDocumentId(null)}>Search all documents</button>}
             </div>
             <div className="suggestions">
               <span>TRY AN EXAMPLE</span>
@@ -185,11 +192,11 @@ function App() {
         <section className="documents-section">
           <div className="documents-heading"><div><p>KNOWLEDGE BASE</p><h2>Indexed documents</h2></div><button onClick={() => fileInput.current?.click()}>Add source</button></div>
           <div className="document-list">
-            {documents.map((document) => <div className="document-row" key={document.id}>
+            {documents.map((document) => <button className={`document-row ${activeDocumentId === document.id ? "selected" : ""}`} key={document.id} onClick={() => setActiveDocumentId(document.id)}>
               <div className="file-mark">PDF</div><div className="document-info"><strong>{document.name}</strong><span>{document.pages} pages <i></i> {document.chunks} chunks</span></div>
               <div className="document-modalities">{document.modalities.slice(0, 4).map((modality) => <span key={modality}>{modality}</span>)}</div>
               <div className="ready"><i></i>{document.status}</div>
-            </div>)}
+            </button>)}
           </div>
         </section>
       </main>

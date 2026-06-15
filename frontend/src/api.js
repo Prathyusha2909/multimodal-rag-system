@@ -12,11 +12,11 @@ async function request(path, options = {}) {
 export const api = {
   getDocuments: () => request("/api/v1/documents"),
   getStats: () => request("/api/v1/stats"),
-  query: (question) =>
+  query: (question, documentIds = null) =>
     request("/api/v1/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, top_k: 4 }),
+      body: JSON.stringify({ question, top_k: 4, document_ids: documentIds }),
     }),
   upload: (file) => {
     const data = new FormData();
@@ -24,4 +24,3 @@ export const api = {
     return request("/api/v1/documents/upload", { method: "POST", body: data });
   },
 };
-

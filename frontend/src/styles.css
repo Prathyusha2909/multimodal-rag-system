@@ -91,6 +91,9 @@ h2 { font-size: 19px; }
 .question-footer > span { display: flex; align-items: center; gap: 7px; color: #657388; font-size: 9px; }
 .question-footer .icon { color: var(--purple); }
 .question-footer button { width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 5px; color: #0b121b; background: var(--lime); cursor: pointer; }
+.scope-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; color: #657388; font-size: 8px; }
+.scope-row strong { color: #9eabbc; font-weight: 600; }
+.scope-row button { border: 0; color: var(--lime); background: transparent; font-size: 8px; cursor: pointer; }
 .suggestions { margin-top: 21px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .suggestions > span { grid-column: 1 / -1; margin-bottom: 3px; color: #526073; font-size: 8px; font-weight: 700; letter-spacing: .15em; }
 .suggestions button { display: flex; align-items: center; justify-content: space-between; min-width: 0; padding: 9px 11px; border: 1px solid #202c3b; border-radius: 5px; color: #8795a8; background: #0d1622; font-size: 9px; text-align: left; cursor: pointer; }
@@ -146,7 +149,9 @@ h2 { font-size: 19px; }
 .documents-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .documents-heading h2 { margin-top: 5px; }
 .documents-heading button { padding: 7px 11px; border: 1px solid #303d4f; border-radius: 5px; color: #9ba7b7; background: transparent; font-size: 9px; cursor: pointer; }
-.document-row { display: grid; grid-template-columns: 40px minmax(240px, 1fr) minmax(210px, auto) 66px; align-items: center; gap: 13px; padding: 14px 0; border-top: 1px solid #202b39; }
+.document-row { width: 100%; display: grid; grid-template-columns: 40px minmax(240px, 1fr) minmax(210px, auto) 66px; align-items: center; gap: 13px; padding: 14px 8px; border: 0; border-top: 1px solid #202b39; color: inherit; background: transparent; text-align: left; cursor: pointer; }
+.document-row:hover, .document-row.selected { background: rgba(184,238,69,.035); }
+.document-row.selected { box-shadow: inset 2px 0 var(--lime); }
 .file-mark { width: 34px; height: 39px; display: grid; place-items: end center; padding-bottom: 6px; border: 1px solid #39475a; border-radius: 4px 4px 7px 4px; color: #8794a6; font-size: 7px; font-weight: 700; }
 .document-info strong, .document-info span { display: block; }
 .document-info strong { color: #bec8d5; font-size: 10px; }

@@ -5,6 +5,6 @@ DeepEval 3.9.9 was used with deterministic custom metrics over the real Sentence
 - Test cases: 8
 - Retrieval Hit@4: 100.0%
 - Cited Page Coverage: 100.0%
-- Required Fact Coverage: 95.8%
+- Required Fact Coverage: 100.0%
 
 Full per-question results are in `deepeval-results.json`.

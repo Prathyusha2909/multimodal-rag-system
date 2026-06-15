@@ -8,6 +8,7 @@ from PIL import Image
 from app.services.cache import IngestionCache
 from app.services.chunking import RegexTokenEncoding, TokenChunker
 from app.services.generator import AnswerGenerator
+from app.domain import DocumentChunk, SearchHit
 from app.services.ingestion import DocumentIngestor
 from app.services.registry import DocumentRegistry
 from app.services.retriever import HybridRetriever
@@ -99,6 +100,52 @@ class GenerationTests(unittest.TestCase):
 
         self.assertIn("[1]", answer)
         self.assertEqual(model, "local-grounded-synthesizer")
+
+    def test_local_answer_synthesizes_raw_pdf_trend(self):
+        hit = SearchHit(
+            chunk=DocumentChunk(
+                id="raw-chart",
+                document_id="nova-upload",
+                document_name="Nova_Retail_Annual_Report_2025.pdf",
+                page=8,
+                modality="text",
+                content=(
+                    "SYNTHETIC SAMPLE REPORT Nova Retail Annual Report 2025 Page 8 "
+                    "Figure 3 - Annual Revenue Trend 2021 $ 78M 2022 $ 86M 2023 $ 97M "
+                    "2024 $ 108M 2025 $ 128M Revenue increased in each reported year, "
+                    "with the largest annual increase of $ 20M occurring in 2025."
+                ),
+            ),
+            semantic_score=0.9,
+            lexical_score=1.0,
+        )
+
+        answer, _ = AnswerGenerator().generate("What is the revenue trend shown in Figure 3?", [hit])
+
+        self.assertIn("increased from $78M in 2021 to $128M in 2025", answer)
+        self.assertNotIn("SYNTHETIC SAMPLE REPORT", answer)
+
+    def test_local_answer_compares_table_metric(self):
+        hit = SearchHit(
+            chunk=DocumentChunk(
+                id="raw-table",
+                document_id="nova-upload",
+                document_name="Nova_Retail_Annual_Report_2025.pdf",
+                page=9,
+                modality="table",
+                content=(
+                    "Table 2 - Segment Performance Segment Revenue Profit Margin "
+                    "Online $ 62M $ 15M 24. 2% Stores $ 51M $ 8M 15. 7%"
+                ),
+            ),
+            semantic_score=0.9,
+            lexical_score=1.0,
+        )
+
+        answer, _ = AnswerGenerator().generate("Compare online and store profit in Table 2.", [hit])
+
+        self.assertIn("Online profit is $15M", answer)
+        self.assertIn("$8M for Store", answer)
 
 
 if __name__ == "__main__":

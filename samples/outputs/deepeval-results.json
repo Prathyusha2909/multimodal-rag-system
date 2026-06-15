@@ -4,13 +4,13 @@
   "summary": {
     "Retrieval Hit@4": 1.0,
     "Cited Page Coverage": 1.0,
-    "Required Fact Coverage": 0.9583
+    "Required Fact Coverage": 1.0
   },
   "results": [
     {
       "id": "revenue-trend",
       "question": "What is the revenue trend shown in Figure 3?",
-      "answer": "Figure 3 is a line chart of annual revenue. Values rise from $78M in 2021, $86M in 2022, $97M in 2023, $108M in 2024, to $128M in 2025. [1] Table 2 lists segment performance for 2025. Online: revenue $62M, profit $15M, margin 24.2%. [2] A grouped bar and line graph compares sales and operating profit. Sales increase from $78M in 2021 to $128M in 2025, while profit rises from $9M to $24M. [3]",
+      "answer": "Revenue increased from $78M in 2021 to $128M in 2025 [1]. The largest increase of $20M occurring in 2025 [1].",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "nova-08-chart",
@@ -27,7 +27,7 @@
     {
       "id": "segment-profit",
       "question": "Compare online and store profit in Table 2.",
-      "answer": "The strongest comparison is between Table 2 - Segment performance and Sales and operating profit. Table 2 lists segment performance for 2025. Online: revenue $62M, profit $15M, margin 24.2%. Stores: revenue $51M, profit $8M, margin 15.7%. Wholesale: revenue $15M, profit $1M, margin 6.7%. Total revenue is $128M and total profit is $24M. [1] In comparison, A grouped bar and line graph compares sales and operating profit. Sales increase from $78M in 2021 to $128M in 2025, while profit rises from $9M to $24M. Profit grows faster than sales, so operating margin expands from 11.5% to 18.8%. [2]",
+      "answer": "Online profit is $15M, compared with $8M for Store [1].",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "nova-09-table",
@@ -44,7 +44,7 @@
     {
       "id": "sales-profit",
       "question": "Explain the relationship between sales and operating profit.",
-      "answer": "A grouped bar and line graph compares sales and operating profit. Sales increase from $78M in 2021 to $128M in 2025, while profit rises from $9M to $24M. [1] Nova Retail delivered resilient growth in 2025. Revenue reached $128 million, up 18% year over year, while operating profit increased to $24 million. [2] Table 2 lists segment performance for 2025. Online: revenue $62M, profit $15M, margin 24.2%. [3]",
+      "answer": "Sales increase from $78M in 2021 to $128M in 2025, while profit rises from $9M to $24M. [1] Profit grows faster than sales, so operating margin expands from 11.5% to 18.8%. [1]",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "nova-16-chart",
@@ -55,13 +55,13 @@
       "scores": {
         "Retrieval Hit@4": 1.0,
         "Cited Page Coverage": 1.0,
-        "Required Fact Coverage": 0.6667
+        "Required Fact Coverage": 1.0
       }
     },
     {
       "id": "customer-growth",
       "question": "How many active customers did Nova Retail have?",
-      "answer": "Nova Retail delivered resilient growth in 2025. Revenue reached $128 million, up 18% year over year, while operating profit increased to $24 million. [1] Active customers grew 14% to 3.2 million. Mobile accounted for 61% of online orders, and repeat purchase frequency improved from 3.1 to 3.6 orders per year. [2] A map shows three new distribution hubs in Pune, Hyderabad, and Chennai. The expanded network places 82% of customers within one-day delivery range. [3]",
+      "answer": "Active customers grew 14% to 3.2 million. [2]",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "nova-03-text",
@@ -78,7 +78,7 @@
     {
       "id": "distribution-network",
       "question": "Which cities received new distribution hubs?",
-      "answer": "A map shows three new distribution hubs in Pune, Hyderabad, and Chennai. The expanded network places 82% of customers within one-day delivery range. [1] Active customers grew 14% to 3.2 million. Mobile accounted for 61% of online orders, and repeat purchase frequency improved from 3.1 to 3.6 orders per year. [2] Nova Retail delivered resilient growth in 2025. Revenue reached $128 million, up 18% year over year, while operating profit increased to $24 million. [3]",
+      "answer": "A map shows three new distribution hubs in Pune, Hyderabad, and Chennai. [1]",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "nova-14-image",
@@ -95,7 +95,7 @@
     {
       "id": "supply-risk",
       "question": "What is the principal operational risk in the scanned note?",
-      "answer": "OCR from a scanned risk note: supply-chain concentration remains the principal operational risk. The company added two suppliers for critical private-label goods and increased safety stock for the top 50 products. [1] Figure 3 is a line chart of annual revenue. Values rise from $78M in 2021, $86M in 2022, $97M in 2023, $108M in 2024, to $128M in 2025. [2] The emissions table reports Scope 1 at 8,200 tCO2e, Scope 2 at 12,400 tCO2e, and Scope 3 at 96,000 tCO2e. Scope 3 is 82% of the measured footprint. [3]",
+      "answer": "OCR from a scanned risk note: supply-chain concentration remains the principal operational risk. [1]",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "nova-18-scan",
@@ -112,7 +112,7 @@
     {
       "id": "emissions",
       "question": "What share of measured emissions comes from Scope 3?",
-      "answer": "The emissions table reports Scope 1 at 8,200 tCO2e, Scope 2 at 12,400 tCO2e, and Scope 3 at 96,000 tCO2e. Scope 3 is 82% of the measured footprint. [1] Figure 3 is a line chart of annual revenue. Values rise from $78M in 2021, $86M in 2022, $97M in 2023, $108M in 2024, to $128M in 2025. [2] Active customers grew 14% to 3.2 million. Mobile accounted for 61% of online orders, and repeat purchase frequency improved from 3.1 to 3.6 orders per year. [3]",
+      "answer": "Scope 3 is 82% of the measured footprint. [1]",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "atlas-04-table",
@@ -129,7 +129,7 @@
     {
       "id": "renewable-energy",
       "question": "How did renewable electricity adoption change by 2025?",
-      "answer": "The chart shows renewable electricity increasing from 24% in 2021 to 68% in 2025. The company targets 90% renewable electricity by 2028. [1] Figure 3 is a line chart of annual revenue. Values rise from $78M in 2021, $86M in 2022, $97M in 2023, $108M in 2024, to $128M in 2025. [2] Nova Retail delivered resilient growth in 2025. Revenue reached $128 million, up 18% year over year, while operating profit increased to $24 million. [3]",
+      "answer": "Renewable electricity adoption increased from 24% in 2021 to 68% in 2025 [1].",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "atlas-07-chart",

@@ -101,6 +101,7 @@ Both runtime paths are real embedding retrieval; the hosted ONNX path avoids loa
 - Top-10 candidate retrieval and `cross-encoder/ms-marco-MiniLM-L6-v2` reranking
 - On-disk caches for extraction, embeddings, reranker scores, model files, and the vector index
 - Deterministic local answer generation
+- Query-focused local answer synthesis and automatic filtering to the latest uploaded document
 - Optional Gemini 2.5 Flash answer generation and image analysis
 - Document, page, modality, excerpt, and reranking score in every citation
 - Responsive React interface
@@ -139,7 +140,7 @@ Responses were evaluated using **DeepEval 3.9.9 on a custom eight-question test 
 | --- | ---: |
 | Retrieval Hit@4 | 100% |
 | Expected cited-page coverage | 100% |
-| Required-fact coverage | 95.8% |
+| Required-fact coverage | 100% |
 
 These results describe only [`evaluation/test_set.json`](evaluation/test_set.json); they are not claims about production accuracy or general hallucination reduction. See the generated [evaluation summary](samples/outputs/evaluation-summary.md) and [per-question results](samples/outputs/deepeval-results.json).
 
