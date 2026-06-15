@@ -148,6 +148,49 @@ class GenerationTests(unittest.TestCase):
         self.assertIn("Online profit is $15M", answer)
         self.assertIn("$8M for Stores", answer)
 
+    def test_local_summary_excludes_equal_opportunity_boilerplate(self):
+        chunks = [
+            DocumentChunk(
+                id="disclaimer",
+                document_id="job",
+                document_name="Data_Scientist.pdf",
+                page=1,
+                modality="text",
+                content=(
+                    "We are an equal opportunity employer committed to promoting all talents "
+                    "regardless of age or any characteristic subject to discrimination."
+                ),
+            ),
+            DocumentChunk(
+                id="overview",
+                document_id="job",
+                document_name="Data_Scientist.pdf",
+                page=2,
+                modality="text",
+                content=(
+                    "The Associate Data Scientist analyzes business data and develops "
+                    "machine-learning solutions for stakeholders."
+                ),
+            ),
+            DocumentChunk(
+                id="skills",
+                document_id="job",
+                document_name="Data_Scientist.pdf",
+                page=3,
+                modality="text",
+                content=(
+                    "Required skills include Python, SQL, statistics, and data visualization."
+                ),
+            ),
+        ]
+        hits = [SearchHit(chunk, 0.8, 0.8) for chunk in chunks]
+
+        answer, _ = AnswerGenerator().generate("summarize", hits)
+
+        self.assertIn("Associate Data Scientist", answer)
+        self.assertIn("Python", answer)
+        self.assertNotIn("equal opportunity", answer.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

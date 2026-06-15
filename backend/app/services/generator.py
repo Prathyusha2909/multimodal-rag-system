@@ -33,6 +33,28 @@ STOP_WORDS = {
     "which",
     "with",
 }
+SUMMARY_PATTERN = re.compile(r"\b(summarize|summary|overview|key findings|main points)\b", re.I)
+SUMMARY_SALIENCE_TERMS = {
+    "achievement",
+    "certification",
+    "education",
+    "experience",
+    "finding",
+    "objective",
+    "profile",
+    "project",
+    "qualification",
+    "requirement",
+    "responsibility",
+    "result",
+    "role",
+    "skill",
+}
+BOILERPLATE_PATTERN = re.compile(
+    r"equal opportunity|regardless of (?:their|race|age)|discriminat(?:e|ion)|"
+    r"all rights reserved|terms and conditions|privacy policy",
+    re.I,
+)
 
 
 class AnswerGenerator:
@@ -72,6 +94,9 @@ class AnswerGenerator:
         if not hits:
             return "I could not find relevant evidence in the indexed documents."
 
+        if SUMMARY_PATTERN.search(question):
+            return cls._document_summary(hits)
+
         trend_answer = cls._trend_answer(question, hits[0])
         if trend_answer:
             return trend_answer
@@ -81,6 +106,47 @@ class AnswerGenerator:
             return comparison
 
         return cls._query_focused_summary(question, hits)
+
+    @classmethod
+    def _document_summary(cls, hits: list[SearchHit]) -> str:
+        candidates: list[tuple[float, int, int, str]] = []
+        for citation, hit in enumerate(hits, start=1):
+            text = cls._clean_content(hit)
+            for sentence_index, sentence in enumerate(cls._sentences(text)):
+                if cls._is_boilerplate(sentence):
+                    continue
+                tokens = cls._meaningful_tokens(sentence)
+                if len(tokens) < 4:
+                    continue
+                salience = len(tokens & SUMMARY_SALIENCE_TERMS)
+                fact_bonus = min(len(re.findall(r"\b\d+(?:\.\d+)?%?\b", sentence)), 3) * 0.25
+                useful_length = 1.0 if 7 <= len(sentence.split()) <= 45 else 0.0
+                score = salience * 1.5 + fact_bonus + useful_length + 1.0 / citation
+                candidates.append((score, citation, sentence_index, sentence))
+
+        selected: list[tuple[int, int, str]] = []
+        used_citations: set[int] = set()
+        seen: set[str] = set()
+        for _, citation, sentence_index, sentence in sorted(candidates, reverse=True):
+            if citation in used_citations and len(used_citations) < min(3, len(hits)):
+                continue
+            key = re.sub(r"\W+", " ", sentence.lower()).strip()
+            if key in seen or any(cls._near_duplicate(key, prior) for prior in seen):
+                continue
+            selected.append((citation, sentence_index, sentence))
+            used_citations.add(citation)
+            seen.add(key)
+            if len(selected) == 4:
+                break
+
+        if not selected:
+            return "I could not find enough substantive content to summarize in the selected document."
+        selected.sort(key=lambda item: (item[0], item[1]))
+        points = " ".join(
+            f"{cls._ensure_sentence(sentence)} [{citation}]"
+            for citation, _, sentence in selected
+        )
+        return f"Summary: {points}"
 
     @classmethod
     def _trend_answer(cls, question: str, hit: SearchHit) -> str | None:
@@ -190,7 +256,7 @@ class AnswerGenerator:
         text = hit.chunk.content.replace("\n", " ")
         document_name = Path(hit.chunk.document_name).stem.replace("_", " ")
         text = re.sub(r"\bSYNTHETIC SAMPLE REPORT\b", "", text, flags=re.I)
-        text = re.sub(re.escape(document_name), "", text, flags=re.I)
+        text = re.sub(rf"^\s*{re.escape(document_name)}\b", "", text, flags=re.I)
         text = re.sub(r"\bPage\s+\d+\b", "", text, flags=re.I)
         text = re.sub(r"\$\s+(?=\d)", "$", text)
         text = re.sub(r"(\d)\.\s+(\d)(?=\s*%)", r"\1.\2", text)
@@ -317,6 +383,10 @@ class AnswerGenerator:
         if re.search(r"\b(compare|relationship|related|amount|total)\b", question, re.I):
             return 3.0 if re.search(r"\d", sentence) else 0.0
         return 0.0
+
+    @staticmethod
+    def _is_boilerplate(sentence: str) -> bool:
+        return bool(BOILERPLATE_PATTERN.search(sentence))
 
     @staticmethod
     def _near_duplicate(candidate: str, existing: str) -> bool:

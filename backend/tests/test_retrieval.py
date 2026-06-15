@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from app.domain import DocumentChunk
 from app.services.registry import DocumentRegistry
 from app.services.retriever import HybridRetriever
 from app.services.vector_store import FaissVectorStore
@@ -57,6 +58,71 @@ class HybridRetrieverTests(unittest.TestCase):
 
         self.assertEqual(len(hits), 3)
         self.assertTrue(all(hit.rerank_score for hit in hits))
+
+    def test_summary_query_prefers_diverse_substantive_sections(self):
+        self.registry.add(
+            [
+                DocumentChunk(
+                    id="job-1",
+                    document_id="job-description",
+                    document_name="Data_Scientist.pdf",
+                    page=1,
+                    modality="text",
+                    title="Equal opportunity statement",
+                    content=(
+                        "We are an equal opportunity employer. We promote all talents regardless "
+                        "of age, disability, gender identity, religion, or any characteristic "
+                        "that could be subject to discrimination."
+                    ),
+                ),
+                DocumentChunk(
+                    id="job-2",
+                    document_id="job-description",
+                    document_name="Data_Scientist.pdf",
+                    page=2,
+                    modality="text",
+                    title="Role overview",
+                    content=(
+                        "The Associate Data Scientist builds machine-learning solutions, analyzes "
+                        "business data, and communicates findings to stakeholders."
+                    ),
+                ),
+                DocumentChunk(
+                    id="job-3",
+                    document_id="job-description",
+                    document_name="Data_Scientist.pdf",
+                    page=3,
+                    modality="text",
+                    title="Skills and qualifications",
+                    content=(
+                        "Required skills include Python, SQL, statistics, data visualization, and "
+                        "experience with machine-learning workflows."
+                    ),
+                ),
+                DocumentChunk(
+                    id="job-4",
+                    document_id="job-description",
+                    document_name="Data_Scientist.pdf",
+                    page=4,
+                    modality="text",
+                    title="Responsibilities",
+                    content=(
+                        "Responsibilities include preparing datasets, evaluating models, documenting "
+                        "results, and collaborating with engineering and product teams."
+                    ),
+                ),
+            ]
+        )
+
+        hits = self.retriever.search(
+            "summarize",
+            limit=4,
+            document_ids={"job-description"},
+        )
+
+        self.assertGreaterEqual(len(hits), 3)
+        self.assertNotIn("job-1", {hit.chunk.id for hit in hits})
+        self.assertGreaterEqual(len({hit.chunk.page for hit in hits}), 3)
 
 
 if __name__ == "__main__":
