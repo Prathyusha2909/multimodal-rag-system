@@ -10,7 +10,7 @@
     {
       "id": "revenue-trend",
       "question": "What is the revenue trend shown in Figure 3?",
-      "answer": "Revenue increased from $78M in 2021 to $128M in 2025 [1]. The largest increase of $20M occurring in 2025 [1].",
+      "answer": "Revenue increased from $78M in 2021 to $128M in 2025 [1]. The largest increase was $20M, occurring in 2025 [1].",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "nova-08-chart",
@@ -27,7 +27,7 @@
     {
       "id": "segment-profit",
       "question": "Compare online and store profit in Table 2.",
-      "answer": "Online profit is $15M, compared with $8M for Store [1].",
+      "answer": "Online profit is $15M, compared with $8M for Stores [1].",
       "model": "local-grounded-synthesizer",
       "retrieved_chunk_ids": [
         "nova-09-table",

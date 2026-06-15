@@ -137,9 +137,10 @@ class AnswerGenerator:
             return None
 
         first_value, second_value = values
+        labels = [cls._entity_label(text, entity) for entity in entities]
         return (
-            f"{entities[0].title()} {metric} is {first_value}, compared with "
-            f"{second_value} for {entities[1].title()} [1]."
+            f"{labels[0]} {metric} is {first_value}, compared with "
+            f"{second_value} for {labels[1]} [1]."
         )
 
     @classmethod
@@ -241,6 +242,12 @@ class AnswerGenerator:
         largest = re.search(r"(?:with\s+)?the\s+largest[^.!?]+", text, re.I)
         if largest:
             detail = re.sub(r"^with\s+", "", largest.group(), flags=re.I)
+            detail = re.sub(
+                rf"^(the largest .+?) of ({VALUE_PATTERN}) occurring in ((?:19|20)\d{{2}})$",
+                r"\1 was \2, occurring in \3",
+                detail,
+                flags=re.I,
+            )
             return detail[0].upper() + detail[1:]
         for sentence in cls._sentences(text):
             if re.search(r"\b(faster|target|margin)\b", sentence, re.I):
@@ -280,6 +287,11 @@ class AnswerGenerator:
         values = [re.sub(r"\s+", "", value) for value in re.findall(VALUE_PATTERN, segment, re.I) if re.search(r"\d", value)]
         metric_index = headers.index(metric)
         return values[metric_index] if metric_index < len(values) else None
+
+    @staticmethod
+    def _entity_label(text: str, entity: str) -> str:
+        match = re.search(rf"\b{re.escape(entity)}s?\b", text, re.I)
+        return match.group().title() if match else entity.title()
 
     @classmethod
     def _sentences(cls, text: str) -> list[str]:

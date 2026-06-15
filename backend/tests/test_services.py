@@ -123,6 +123,7 @@ class GenerationTests(unittest.TestCase):
         answer, _ = AnswerGenerator().generate("What is the revenue trend shown in Figure 3?", [hit])
 
         self.assertIn("increased from $78M in 2021 to $128M in 2025", answer)
+        self.assertIn("largest annual increase was $20M", answer)
         self.assertNotIn("SYNTHETIC SAMPLE REPORT", answer)
 
     def test_local_answer_compares_table_metric(self):
@@ -145,7 +146,7 @@ class GenerationTests(unittest.TestCase):
         answer, _ = AnswerGenerator().generate("Compare online and store profit in Table 2.", [hit])
 
         self.assertIn("Online profit is $15M", answer)
-        self.assertIn("$8M for Store", answer)
+        self.assertIn("$8M for Stores", answer)
 
 
 if __name__ == "__main__":
